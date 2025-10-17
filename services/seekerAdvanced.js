@@ -145,35 +145,18 @@ class SeekerAdvanced {
         await this.login();
       }
 
-      // Paso 1: Petición AJAX
-      const ajaxUrl = `${config.seekerBaseUrl}/index.php?action=validate`;
-      const formData = {
-        tipo_bus: '1',
-        valor_buscado: dni
-      };
-      
-      console.log('🔍 Enviando petición AJAX...');
-      console.log('🍪 Cookies antes de AJAX:', this.cookies);
-      
-      const ajaxResponse = await this.session.post(ajaxUrl, formData, {
+      // Ir directamente a la página de resultados sin AJAX
+      const resultUrl = `${config.seekerResultUrl}&cod=${dni}`;
+      console.log('📄 Obteniendo página de resultados directamente...');
+      const resultResponse = await this.session.get(resultUrl, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Requested-With': 'XMLHttpRequest',
           'Referer': config.seekerHomeUrl,
-          'Origin': config.seekerBaseUrl,
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
           'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
-      
-      console.log('📥 Respuesta AJAX:', ajaxResponse.data.substring(0, 200));
-
-      // Paso 2: Ir directamente a la página de resultados
-      const resultUrl = `${config.seekerResultUrl}&cod=${dni}`;
-      console.log('📄 Obteniendo página de resultados...');
-      const resultResponse = await this.session.get(resultUrl);
 
       // Paso 3: Extraer TODOS los datos
       const datosCompletos = await this.extraerDatosCompletos(resultResponse.data, dni);
@@ -200,7 +183,8 @@ class SeekerAdvanced {
    */
   async extraerDatosCompletos(html, dni) {
     try {
-      console.log(`📄 HTML recibido (${html.length} caracteres):`, html.substring(0, 500));
+      console.log(`📄 HTML recibido (${html.length} caracteres):`, html.substring(0, 1000));
+      console.log(`📄 HTML completo (primeros 2000 chars):`, html.substring(0, 2000));
       const $ = cheerio.load(html);
       const datos = {
         dni,
