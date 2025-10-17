@@ -11,6 +11,7 @@ const config = require('./config');
 // Importar rutas
 const consultaRoutes = require('./routes/consulta');
 const consultaSimpleRoutes = require('./routes/consultaSimple');
+const consultaPuppeteerRoutes = require('./routes/consultaPuppeteer');
 
 const app = express();
 
@@ -48,26 +49,34 @@ app.get('/', (req, res) => {
     success: true,
     message: 'API de Consultas',
     version: '1.0.0',
-    endpoints: {
-      consulta: {
-        'GET /api/consulta/advanced=dni?dni={dni}': 'Consultar persona por DNI (básico)',
-        'GET /api/consulta/advanced=nm?nombres={nombre-apellido1-apellido2}': 'Buscar personas por nombres (básico)',
-        'GET /api/consulta/advanced=tel?telefono={telefono}': 'Buscar persona por teléfono (básico)',
-        'GET /api/consulta/simple=dni?dni={dni}': 'Consultar persona por DNI (con caché)',
-        'GET /api/consulta/simple=nm?nombres={nombre-apellido1-apellido2}': 'Buscar personas por nombres (con caché)',
-        'GET /api/consulta/simple=tel?telefono={telefono}': 'Buscar persona por teléfono (con caché)',
-        'GET /api/consulta/cache-stats': 'Estadísticas del caché'
-      }
-    },
-    examples: {
-      dni_basic: 'GET /api/consulta/advanced=dni?dni=44443333',
-      nombres_basic: 'GET /api/consulta/advanced=nm?nombres=Pedro-Castillo-Terrones',
-      telefono_basic: 'GET /api/consulta/advanced=tel?telefono=912271316',
-      dni_cached: 'GET /api/consulta/simple=dni?dni=44443333',
-      nombres_cached: 'GET /api/consulta/simple=nm?nombres=Pedro-Castillo-Terrones',
-      telefono_cached: 'GET /api/consulta/simple=tel?telefono=912271316',
-      cache_stats: 'GET /api/consulta/cache-stats'
-    },
+        endpoints: {
+          consulta: {
+            'GET /api/consulta/puppeteer=dni?dni={dni}': 'Consultar persona por DNI (navegador real)',
+            'GET /api/consulta/puppeteer=nm?nombres={nombre-apellido1-apellido2}': 'Buscar personas por nombres (navegador real)',
+            'GET /api/consulta/puppeteer=tel?telefono={telefono}': 'Buscar persona por teléfono (navegador real)',
+            'GET /api/consulta/puppeteer-status': 'Estado del servicio Puppeteer',
+            'GET /api/consulta/advanced=dni?dni={dni}': 'Consultar persona por DNI (básico)',
+            'GET /api/consulta/advanced=nm?nombres={nombre-apellido1-apellido2}': 'Buscar personas por nombres (básico)',
+            'GET /api/consulta/advanced=tel?telefono={telefono}': 'Buscar persona por teléfono (básico)',
+            'GET /api/consulta/simple=dni?dni={dni}': 'Consultar persona por DNI (con caché)',
+            'GET /api/consulta/simple=nm?nombres={nombre-apellido1-apellido2}': 'Buscar personas por nombres (con caché)',
+            'GET /api/consulta/simple=tel?telefono={telefono}': 'Buscar persona por teléfono (con caché)',
+            'GET /api/consulta/cache-stats': 'Estadísticas del caché'
+          }
+        },
+        examples: {
+          dni_puppeteer: 'GET /api/consulta/puppeteer=dni?dni=44443333',
+          nombres_puppeteer: 'GET /api/consulta/puppeteer=nm?nombres=Pedro-Castillo-Terrones',
+          telefono_puppeteer: 'GET /api/consulta/puppeteer=tel?telefono=912271316',
+          puppeteer_status: 'GET /api/consulta/puppeteer-status',
+          dni_basic: 'GET /api/consulta/advanced=dni?dni=44443333',
+          nombres_basic: 'GET /api/consulta/advanced=nm?nombres=Pedro-Castillo-Terrones',
+          telefono_basic: 'GET /api/consulta/advanced=tel?telefono=912271316',
+          dni_cached: 'GET /api/consulta/simple=dni?dni=44443333',
+          nombres_cached: 'GET /api/consulta/simple=nm?nombres=Pedro-Castillo-Terrones',
+          telefono_cached: 'GET /api/consulta/simple=tel?telefono=912271316',
+          cache_stats: 'GET /api/consulta/cache-stats'
+        },
     timestamp: new Date().toISOString()
   });
 });
@@ -75,6 +84,7 @@ app.get('/', (req, res) => {
 // Registrar rutas
 app.use('/api/consulta', consultaRoutes);
 app.use('/api/consulta', consultaSimpleRoutes);
+app.use('/api/consulta', consultaPuppeteerRoutes);
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
