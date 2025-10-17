@@ -9,7 +9,7 @@ const config = require('../config');
 class SeekerAdvanced {
   constructor() {
     this.session = axios.create({
-      timeout: 15000,
+      timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -530,8 +530,18 @@ class SeekerAdvanced {
     try {
       console.log(`🔍 Iniciando búsqueda por nombres...`);
       
-      // 1. Login
-      await this.login();
+      // 1. Login con timeout específico
+      try {
+        await Promise.race([
+          this.login(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Login timeout')), 20000)
+          )
+        ]);
+      } catch (error) {
+        console.error('❌ Error en login para búsqueda por nombres:', error.message);
+        throw new Error(`Login fallido: ${error.message}`);
+      }
       
       // 2. Realizar búsqueda AJAX por nombres
       const searchData = {
