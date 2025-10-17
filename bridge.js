@@ -180,6 +180,17 @@ class Bridge {
             redirectUrl = `${this.baseUrl}/` + redirectUrl;
           }
           
+          // Si redirige a login, la sesión expiró - hacer re-login
+          if (redirectUrl.includes('view=login')) {
+            console.log('⚠️ Sesión expirada, haciendo re-login...');
+            this.cookie = null; // Limpiar cookie expirada
+            await this.login();
+            
+            // Reintentar la búsqueda después del re-login
+            console.log('🔄 Reintentando búsqueda después del re-login...');
+            return await this.buscarDNI(dni);
+          }
+          
           console.log('🔗 URL corregida:', redirectUrl);
           
           // Ir a la página de resultados
