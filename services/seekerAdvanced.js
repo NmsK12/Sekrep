@@ -148,6 +148,7 @@ class SeekerAdvanced {
       // Ir directamente a la página de resultados sin AJAX
       const resultUrl = `${config.seekerResultUrl}&cod=${dni}`;
       console.log('📄 Obteniendo página de resultados directamente...');
+      console.log('🔗 URL de resultados:', resultUrl);
       const resultResponse = await this.session.get(resultUrl, {
         headers: {
           'Referer': config.seekerHomeUrl,
