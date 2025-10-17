@@ -95,6 +95,23 @@ class SeekerPuppeteer {
       
       await this.page.type('input[type="password"]', config.seekerPassword);
       
+      // Intentar enviar el formulario presionando Enter
+      try {
+        console.log('🔄 Intentando enviar formulario con Enter...');
+        await this.page.keyboard.press('Enter');
+        await this.page.waitForTimeout(2000);
+        
+        // Verificar si ya navegó
+        const currentUrl = this.page.url();
+        if (currentUrl !== config.seekerLoginUrl) {
+          console.log('✅ Formulario enviado con Enter exitosamente');
+          this.isLoggedIn = true;
+          return true;
+        }
+      } catch (e) {
+        console.log('🔄 Enter no funcionó, intentando con botón...');
+      }
+      
       // Hacer clic en el botón de login - probar diferentes selectores
       const submitSelectors = [
         'input[type="submit"]',
@@ -135,10 +152,21 @@ class SeekerPuppeteer {
         throw new Error('No se encontró el botón de submit');
       }
       
-      await this.page.click('input[type="submit"], button[type="submit"], button');
+      // Hacer clic en el botón usando diferentes métodos
+      try {
+        await submitButton.click();
+      } catch (e) {
+        console.log('🔄 Intentando clic alternativo...');
+        await this.page.evaluate((button) => button.click(), submitButton);
+      }
       
-      // Esperar a que navegue
-      await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
+      // Esperar a que navegue o que cambie la página
+      try {
+        await this.page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 });
+      } catch (e) {
+        console.log('🔄 Esperando cambio de URL...');
+        await this.page.waitForFunction(() => window.location.href !== window.location.href, { timeout: 5000 });
+      }
       
       // Verificar si el login fue exitoso
       const currentUrl = this.page.url();
