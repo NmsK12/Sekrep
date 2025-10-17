@@ -26,7 +26,7 @@ class SeekerAdvanced {
     this.isLoggedIn = false;
     this.lastLogin = null;
 
-    // Interceptor para capturar cookies
+    // Interceptor para manejar cookies
     this.session.interceptors.response.use(
       (response) => {
         const setCookie = response.headers['set-cookie'];
@@ -44,7 +44,6 @@ class SeekerAdvanced {
       (error) => Promise.reject(error)
     );
 
-    // Interceptor para enviar cookies
     this.session.interceptors.request.use(
       (config) => {
         if (Object.keys(this.cookies).length > 0) {
@@ -66,13 +65,16 @@ class SeekerAdvanced {
     try {
       console.log('🔐 Login rápido...');
       
+      // 1. Obtener página de login
       const loginPageResponse = await this.session.get(config.seekerLoginUrl);
       const $ = cheerio.load(loginPageResponse.data);
       
+      // 2. Buscar formulario de login
       const form = $('form').first();
       const action = form.attr('action') || '';
       const actionUrl = action.startsWith('http') ? action : config.seekerBaseUrl + '/' + action.replace(/^\//, '');
       
+      // 3. Preparar datos del formulario
       const formData = {};
       form.find('input').each((i, input) => {
         const $input = $(input);
@@ -83,9 +85,13 @@ class SeekerAdvanced {
         }
       });
 
+      // 4. Agregar credenciales
       formData['usuario'] = config.seekerUser;
       formData['contrasena'] = config.seekerPassword;
       
+      console.log('📤 Enviando credenciales...');
+      
+      // 5. Enviar login
       const loginResponse = await this.session.post(actionUrl, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -94,11 +100,15 @@ class SeekerAdvanced {
       });
 
       const loginHtml = loginResponse.data;
+      
+      // 6. Verificar si el login fue exitoso
       const isLoggedIn = !loginHtml.includes('error') && 
                         !loginHtml.includes('invalid') &&
                         !loginHtml.includes('incorrect') &&
                         !loginHtml.includes('Login') &&
-                        loginHtml.length > 2000;
+                        (loginHtml.includes('Usuario de búsqueda básica') || 
+                         loginHtml.includes('NMSK12') ||
+                         loginHtml.length > 2000);
 
       if (isLoggedIn) {
         this.isLoggedIn = true;
@@ -106,6 +116,7 @@ class SeekerAdvanced {
         console.log('✅ Login exitoso');
         return true;
       } else {
+        console.log('❌ Login fallido - HTML recibido:', loginHtml.substring(0, 200));
         throw new Error('Login fallido');
       }
 
