@@ -327,13 +327,6 @@ class SeekerAdvanced {
         console.log(`🆔 DNI encontrado: ${datos.dni}`);
       }
     }
-      if (text.includes('Fecha de Fallecimiento:')) {
-        const fecha = text.replace('Fecha de Fallecimiento:', '').trim();
-        if (fecha !== 'N/A') {
-          datos.datosPersonales.fechaFallecimiento = fecha;
-        }
-      }
-    });
   }
 
   /**
