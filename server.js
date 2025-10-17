@@ -1,133 +1,81 @@
-/**
- * Servidor API para seeker.lat
- */
+// API simple y limpia
 
 const express = require('express');
-const helmet = require('helmet');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const config = require('./config');
-
-// Importar rutas
-const consultaRoutes = require('./routes/consulta');
-const consultaSimpleRoutes = require('./routes/consultaSimple');
-const consultaPuppeteerRoutes = require('./routes/consultaPuppeteer');
+const Bridge = require('./bridge');
 
 const app = express();
+const bridge = new Bridge();
 
-// Configurar trust proxy para Railway
-app.set('trust proxy', 1);
-
-// Middleware de seguridad
-app.use(helmet());
-
-// CORS
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? false : true,
-  credentials: true
-}));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.max,
-  message: {
-    success: false,
-    message: 'Demasiadas solicitudes, intenta más tarde',
-    error: 'Rate limit exceeded'
-  }
-});
-app.use('/api/', limiter);
-
-// Middleware para parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Middleware
+app.use(cors());
+app.use(express.json());
 
 // Ruta principal
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'API de Consultas',
+    message: 'API de Consultas - Puente Simple',
     version: '1.0.0',
-        endpoints: {
-          consulta: {
-            'GET /api/consulta/puppeteer=dni?dni={dni}': 'Consultar persona por DNI (navegador real)',
-            'GET /api/consulta/puppeteer=nm?nombres={nombre-apellido1-apellido2}': 'Buscar personas por nombres (navegador real)',
-            'GET /api/consulta/puppeteer=tel?telefono={telefono}': 'Buscar persona por teléfono (navegador real)',
-            'GET /api/consulta/puppeteer-status': 'Estado del servicio Puppeteer',
-            'GET /api/consulta/advanced=dni?dni={dni}': 'Consultar persona por DNI (básico)',
-            'GET /api/consulta/advanced=nm?nombres={nombre-apellido1-apellido2}': 'Buscar personas por nombres (básico)',
-            'GET /api/consulta/advanced=tel?telefono={telefono}': 'Buscar persona por teléfono (básico)',
-            'GET /api/consulta/simple=dni?dni={dni}': 'Consultar persona por DNI (con caché)',
-            'GET /api/consulta/simple=nm?nombres={nombre-apellido1-apellido2}': 'Buscar personas por nombres (con caché)',
-            'GET /api/consulta/simple=tel?telefono={telefono}': 'Buscar persona por teléfono (con caché)',
-            'GET /api/consulta/cache-stats': 'Estadísticas del caché'
-          }
-        },
-        examples: {
-          dni_puppeteer: 'GET /api/consulta/puppeteer=dni?dni=44443333',
-          nombres_puppeteer: 'GET /api/consulta/puppeteer=nm?nombres=Pedro-Castillo-Terrones',
-          telefono_puppeteer: 'GET /api/consulta/puppeteer=tel?telefono=912271316',
-          puppeteer_status: 'GET /api/consulta/puppeteer-status',
-          dni_basic: 'GET /api/consulta/advanced=dni?dni=44443333',
-          nombres_basic: 'GET /api/consulta/advanced=nm?nombres=Pedro-Castillo-Terrones',
-          telefono_basic: 'GET /api/consulta/advanced=tel?telefono=912271316',
-          dni_cached: 'GET /api/consulta/simple=dni?dni=44443333',
-          nombres_cached: 'GET /api/consulta/simple=nm?nombres=Pedro-Castillo-Terrones',
-          telefono_cached: 'GET /api/consulta/simple=tel?telefono=912271316',
-          cache_stats: 'GET /api/consulta/cache-stats'
-        },
-    timestamp: new Date().toISOString()
+    endpoints: {
+      'GET /api/dni?dni={dni}': 'Consultar persona por DNI',
+      'GET /api/nombres?nombres={nombres}': 'Buscar personas por nombres'
+    },
+    examples: {
+      dni: 'GET /api/dni?dni=80660244',
+      nombres: 'GET /api/nombres?nombres=MIGUEL-MOSCOSO'
+    }
   });
 });
 
-// Registrar rutas
-app.use('/api/consulta', consultaRoutes);
-app.use('/api/consulta', consultaSimpleRoutes);
-app.use('/api/consulta', consultaPuppeteerRoutes);
-
-// Middleware de manejo de errores
-app.use((err, req, res, next) => {
-  console.error('❌ Error no manejado:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Error interno del servidor',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Error interno'
-  });
+// Endpoint para buscar por DNI
+app.get('/api/dni', async (req, res) => {
+  try {
+    const { dni } = req.query;
+    if (!dni) {
+      return res.status(400).json({ success: false, message: 'DNI es requerido' });
+    }
+    if (!/^\d{8}$/.test(dni)) {
+      return res.status(400).json({ success: false, message: 'DNI debe ser 8 dígitos' });
+    }
+    console.log(`🔍 API recibió consulta DNI: ${dni}`);
+    const resultado = await bridge.buscarDNI(dni);
+    res.json(resultado);
+  } catch (error) {
+    console.error('❌ Error en endpoint DNI:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
+  }
 });
 
-// Ruta 404
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Ruta no encontrada',
-    error: `La ruta ${req.method} ${req.originalUrl} no existe`,
-    availableRoutes: [
-      'GET /',
-      'GET /api/consulta/advanced=dni?dni={dni}',
-      'GET /api/consulta/advanced=nm?nombres={nombre-apellido1-apellido2}',
-      'GET /api/consulta/advanced=tel?telefono={telefono}'
-    ]
-  });
+// Endpoint para buscar por nombres
+app.get('/api/nombres', async (req, res) => {
+  try {
+    const { nombres } = req.query;
+    if (!nombres) {
+      return res.status(400).json({ success: false, message: 'Nombres son requeridos' });
+    }
+    console.log(`🔍 API recibió consulta nombres: ${nombres}`);
+    const resultado = await bridge.buscarNombres(nombres);
+    res.json(resultado);
+  } catch (error) {
+    console.error('❌ Error en endpoint nombres:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
+  }
 });
 
 // Iniciar servidor
-const PORT = config.port;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('🚀 Servidor API de Consultas iniciado');
+  console.log('🚀 Servidor API de Consultas - Puente Simple iniciado');
   console.log(`📡 Puerto: ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
   console.log('📋 Endpoints disponibles:');
-  console.log('   GET  /api/consulta/advanced=dni?dni={dni} - Consultar persona por DNI');
-  console.log('   GET  /api/consulta/advanced=nm?nombres={nombre-apellido1-apellido2} - Buscar personas por nombres');
-  console.log('   GET  /api/consulta/advanced=tel?telefono={telefono} - Buscar persona por teléfono');
+  console.log('   GET  /api/dni?dni={dni} - Consultar persona por DNI');
+  console.log('   GET  /api/nombres?nombres={nombres} - Buscar personas por nombres');
   console.log('   GET  /                           - Información de la API');
-  console.log('');
   console.log('🔧 Ejemplos de uso:');
-  console.log(`   curl "http://localhost:${PORT}/api/consulta/advanced=dni?dni=80660243"`);
-  console.log(`   curl "http://localhost:${PORT}/api/consulta/advanced=nm?nombres=Miguel-Moscoso-Pacahuala"`);
-  console.log(`   curl "http://localhost:${PORT}/api/consulta/advanced=tel?telefono=912271316"`);
-  console.log('');
+  console.log(`   curl "http://localhost:${PORT}/api/dni?dni=80660244"`);
+  console.log(`   curl "http://localhost:${PORT}/api/nombres?nombres=MIGUEL-MOSCOSO"`);
 });
 
 module.exports = app;
