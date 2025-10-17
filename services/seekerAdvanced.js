@@ -119,9 +119,19 @@ class SeekerAdvanced {
         this.lastLogin = new Date();
         console.log('✅ Login exitoso');
         
-        // Saltarse la verificación de sesión por ahora y proceder directamente
-        console.log('✅ Login completado, procediendo con búsqueda...');
-        return true;
+        // Verificar que la sesión funciona haciendo una petición a home
+        console.log('🔍 Verificando sesión activa...');
+        const homeResponse = await this.session.get(config.seekerHomeUrl);
+        const homeHtml = homeResponse.data;
+        
+        if (homeHtml.includes('Usuario de búsqueda básica') || homeHtml.includes('NMSK12')) {
+          console.log('✅ Sesión verificada correctamente');
+          return true;
+        } else {
+          console.log('❌ Sesión no válida después del login');
+          this.isLoggedIn = false;
+          throw new Error('Sesión no válida');
+        }
       } else {
         console.log('❌ Login fallido - HTML recibido:', loginHtml.substring(0, 300));
         throw new Error('Login fallido');
@@ -140,8 +150,10 @@ class SeekerAdvanced {
     try {
       console.log(`🚀 Consulta completa para DNI: ${dni}`);
       
-      // Siempre hacer login fresco para asegurar sesión válida
-      await this.login();
+      // Solo hacer login si no estamos logueados
+      if (!this.isLoggedIn) {
+        await this.login();
+      }
 
       // Paso 1: Petición AJAX
       const ajaxUrl = `${config.seekerBaseUrl}/index.php?action=validate`;
@@ -544,8 +556,10 @@ class SeekerAdvanced {
     try {
       console.log(`🔍 Iniciando búsqueda por nombres...`);
       
-      // 1. Login fresco para asegurar sesión válida
-      await this.login();
+      // 1. Solo hacer login si no estamos logueados
+      if (!this.isLoggedIn) {
+        await this.login();
+      }
       
       // 2. Realizar búsqueda AJAX por nombres
       const searchData = {

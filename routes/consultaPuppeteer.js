@@ -9,7 +9,8 @@ const SeekerPuppeteer = require('../services/seekerPuppeteer');
 // Instancia global del servicio Puppeteer
 let seekerPuppeteer = null;
 
-// Inicializar Puppeteer al cargar el módulo
+// Inicializar Puppeteer al cargar el módulo - DESHABILITADO TEMPORALMENTE
+/*
 (async () => {
   try {
     seekerPuppeteer = new SeekerPuppeteer();
@@ -19,6 +20,7 @@ let seekerPuppeteer = null;
     console.error('❌ Error inicializando Puppeteer:', error.message);
   }
 })();
+*/
 
 /**
  * GET /api/consulta/puppeteer=dni?dni={dni}
