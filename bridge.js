@@ -4,6 +4,8 @@
 
 const axios = require('axios');
 const cheerio = require('cheerio');
+const fs = require('fs');
+const path = require('path');
 
 // Configuración por variables de entorno
 const BASE_URL = process.env.BASE_URL || 'https://seeker.lat';
@@ -21,6 +23,23 @@ class Bridge {
     });
     this.cookie = null;
     this.baseUrl = BASE_URL;
+    this._cachedDefaultPhotoDataUrl = null;
+  }
+
+  getDefaultPhotoDataUrl() {
+    if (this._cachedDefaultPhotoDataUrl) {
+      return this._cachedDefaultPhotoDataUrl;
+    }
+    try {
+      const imgPath = path.join(__dirname, 'ft_no_disponible.jpg');
+      const file = fs.readFileSync(imgPath);
+      const b64 = file.toString('base64');
+      this._cachedDefaultPhotoDataUrl = `data:image/jpeg;base64,${b64}`;
+      return this._cachedDefaultPhotoDataUrl;
+    } catch (e) {
+      console.error('⚠️ No se pudo leer ft_no_disponible.jpg:', e.message);
+      return null;
+    }
   }
 
   async login() {
@@ -209,7 +228,7 @@ class Bridge {
             }
           }
           if (!foto) {
-            foto = '/ft_no_disponible.jpg';
+            foto = this.getDefaultPhotoDataUrl();
           }
           
           // Extraer tablas adicionales
@@ -323,7 +342,7 @@ class Bridge {
         }
       }
       if (!foto) {
-        foto = '/ft_no_disponible.jpg';
+        foto = this.getDefaultPhotoDataUrl();
       }
       
       // Extraer tablas adicionales
