@@ -74,6 +74,8 @@ class SeekerAdvanced {
       const action = form.attr('action') || '';
       const actionUrl = action.startsWith('http') ? action : config.seekerBaseUrl + '/' + action.replace(/^\//, '');
       
+      console.log('🔍 Formulario encontrado, action:', actionUrl);
+      
       // 3. Preparar datos del formulario
       const formData = {};
       form.find('input').each((i, input) => {
@@ -85,17 +87,18 @@ class SeekerAdvanced {
         }
       });
 
-      // 4. Agregar credenciales
+      // 4. Agregar credenciales (usar los nombres correctos del formulario)
       formData['usuario'] = config.seekerUser;
-      formData['contrasena'] = config.seekerPassword;
+      formData['password'] = config.seekerPassword; // Cambiar de 'contrasena' a 'password'
       
-      console.log('📤 Enviando credenciales...');
+      console.log('📤 Enviando credenciales...', { usuario: formData['usuario'], password: '***' });
       
       // 5. Enviar login
       const loginResponse = await this.session.post(actionUrl, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Referer': config.seekerLoginUrl
+          'Referer': config.seekerLoginUrl,
+          'Origin': config.seekerBaseUrl
         }
       });
 
@@ -108,6 +111,7 @@ class SeekerAdvanced {
                         !loginHtml.includes('Login') &&
                         (loginHtml.includes('Usuario de búsqueda básica') || 
                          loginHtml.includes('NMSK12') ||
+                         loginHtml.includes('home') ||
                          loginHtml.length > 2000);
 
       if (isLoggedIn) {
@@ -116,7 +120,7 @@ class SeekerAdvanced {
         console.log('✅ Login exitoso');
         return true;
       } else {
-        console.log('❌ Login fallido - HTML recibido:', loginHtml.substring(0, 200));
+        console.log('❌ Login fallido - HTML recibido:', loginHtml.substring(0, 300));
         throw new Error('Login fallido');
       }
 
