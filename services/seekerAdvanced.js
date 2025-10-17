@@ -216,15 +216,22 @@ class SeekerAdvanced {
         timestamp: new Date().toISOString()
       };
 
-      // 1. Extraer nombre principal
-      $('h1, h2, h3, .nombre, .title, .header').each((i, element) => {
-        const $el = $(element);
-        const text = $el.text().trim();
-        if (text && text.length > 5 && text.length < 100 && !text.includes('seeker')) {
-          datos.nombre = text;
-          return false;
-        }
-      });
+      // 1. Extraer nombre principal - buscar en la estructura específica
+      const nombreElement = $('h2.name').first();
+      if (nombreElement.length > 0) {
+        datos.nombre = nombreElement.text().trim();
+        console.log(`👤 Nombre encontrado: ${datos.nombre}`);
+      } else {
+        // Buscar en otros lugares
+        $('h1, h2, h3, .nombre, .title, .header').each((i, element) => {
+          const $el = $(element);
+          const text = $el.text().trim();
+          if (text && text.length > 5 && text.length < 100 && !text.includes('seeker')) {
+            datos.nombre = text;
+            return false;
+          }
+        });
+      }
 
       // Si no se encontró nombre en headers, buscar en el texto
       if (!datos.nombre) {
@@ -299,16 +306,27 @@ class SeekerAdvanced {
       
       if (text.includes('Fecha de Nacimiento:')) {
         datos.datosPersonales.fechaNacimiento = text.replace('Fecha de Nacimiento:', '').trim();
-      }
-      if (text.includes('Edad :')) {
+      } else if (text.includes('Edad :')) {
         datos.datosPersonales.edad = text.replace('Edad :', '').trim();
-      }
-      if (text.includes('Sexo :')) {
+      } else if (text.includes('Sexo :')) {
         datos.datosPersonales.sexo = text.replace('Sexo :', '').trim();
-      }
-      if (text.includes('Estado :')) {
+      } else if (text.includes('Estado :')) {
         datos.datosPersonales.estadoCivil = text.replace('Estado :', '').trim();
+      } else if (text.includes('Padre :')) {
+        datos.datosPersonales.padre = text.replace('Padre :', '').trim();
+      } else if (text.includes('Madre :')) {
+        datos.datosPersonales.madre = text.replace('Madre :', '').trim();
       }
+    });
+    
+    // Extraer DNI si no está en los datos principales
+    if (!datos.dni || datos.dni === datos.codigo) {
+      const dniElement = $('p.dni').first();
+      if (dniElement.length > 0) {
+        datos.dni = dniElement.text().trim();
+        console.log(`🆔 DNI encontrado: ${datos.dni}`);
+      }
+    }
       if (text.includes('Fecha de Fallecimiento:')) {
         const fecha = text.replace('Fecha de Fallecimiento:', '').trim();
         if (fecha !== 'N/A') {
