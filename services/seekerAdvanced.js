@@ -149,6 +149,8 @@ class SeekerAdvanced {
       const resultUrl = `${config.seekerResultUrl}&cod=${dni}`;
       console.log('📄 Obteniendo página de resultados directamente...');
       console.log('🔗 URL de resultados:', resultUrl);
+      console.log('🍪 Cookies antes de obtener resultados:', this.cookies);
+      
       const resultResponse = await this.session.get(resultUrl, {
         headers: {
           'Referer': config.seekerHomeUrl,
@@ -158,6 +160,8 @@ class SeekerAdvanced {
           'Pragma': 'no-cache'
         }
       });
+      
+      console.log('📥 Respuesta de resultados recibida');
 
       // Paso 3: Extraer TODOS los datos
       const datosCompletos = await this.extraerDatosCompletos(resultResponse.data, dni);
@@ -186,6 +190,20 @@ class SeekerAdvanced {
     try {
       console.log(`📄 HTML recibido (${html.length} caracteres):`, html.substring(0, 1000));
       console.log(`📄 HTML completo (primeros 2000 chars):`, html.substring(0, 2000));
+      
+      // Buscar indicadores de qué tipo de página es
+      if (html.includes('Cambio de Contraseña')) {
+        console.log('⚠️ Página de cambio de contraseña detectada');
+      }
+      if (html.includes('Usuario de búsqueda básica')) {
+        console.log('✅ Página de usuario logueado detectada');
+      }
+      if (html.includes('No se encontró')) {
+        console.log('❌ Página de "no encontrado" detectada');
+      }
+      if (html.includes('CARLOS ANTENOR SILVA PISCOYA')) {
+        console.log('✅ Datos de persona detectados');
+      }
       const $ = cheerio.load(html);
       const datos = {
         dni,
