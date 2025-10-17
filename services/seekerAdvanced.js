@@ -200,6 +200,7 @@ class SeekerAdvanced {
    */
   async extraerDatosCompletos(html, dni) {
     try {
+      console.log(`📄 HTML recibido (${html.length} caracteres):`, html.substring(0, 500));
       const $ = cheerio.load(html);
       const datos = {
         dni,
@@ -217,17 +218,21 @@ class SeekerAdvanced {
       };
 
       // 1. Extraer nombre principal - buscar en la estructura específica
+      console.log('🔍 Buscando nombre en h2.name...');
       const nombreElement = $('h2.name').first();
       if (nombreElement.length > 0) {
         datos.nombre = nombreElement.text().trim();
         console.log(`👤 Nombre encontrado: ${datos.nombre}`);
       } else {
+        console.log('🔍 h2.name no encontrado, buscando en otros lugares...');
         // Buscar en otros lugares
         $('h1, h2, h3, .nombre, .title, .header').each((i, element) => {
           const $el = $(element);
           const text = $el.text().trim();
+          console.log(`🔍 Elemento ${i}: ${text.substring(0, 50)}...`);
           if (text && text.length > 5 && text.length < 100 && !text.includes('seeker')) {
             datos.nombre = text;
+            console.log(`👤 Nombre encontrado en elemento ${i}: ${datos.nombre}`);
             return false;
           }
         });
