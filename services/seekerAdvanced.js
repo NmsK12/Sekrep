@@ -149,6 +149,8 @@ class SeekerAdvanced {
       };
       
       console.log('🔍 Enviando petición AJAX...');
+      console.log('🍪 Cookies antes de AJAX:', this.cookies);
+      
       const ajaxResponse = await this.session.post(ajaxUrl, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -157,6 +159,8 @@ class SeekerAdvanced {
           'Origin': config.seekerBaseUrl
         }
       });
+      
+      console.log('📥 Respuesta AJAX:', ajaxResponse.data.substring(0, 200));
 
       // Paso 2: Ir directamente a la página de resultados
       const resultUrl = `${config.seekerResultUrl}&cod=${dni}`;
@@ -557,10 +561,14 @@ class SeekerAdvanced {
 
       console.log(`📤 Enviando datos de búsqueda:`, searchData);
       
+      // Verificar que tenemos cookies antes de hacer la búsqueda
+      console.log('🍪 Cookies actuales:', this.cookies);
+      
       const searchResponse = await this.session.post(`${config.seekerBaseUrl}/index.php?action=validate`, searchData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-Requested-With': 'XMLHttpRequest',
+          'Referer': config.seekerHomeUrl
         }
       });
 
