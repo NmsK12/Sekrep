@@ -118,7 +118,20 @@ class SeekerAdvanced {
         this.isLoggedIn = true;
         this.lastLogin = new Date();
         console.log('✅ Login exitoso');
-        return true;
+        
+        // Verificar que la sesión funciona haciendo una petición a home
+        console.log('🔍 Verificando sesión activa...');
+        const homeResponse = await this.session.get(config.seekerHomeUrl);
+        const homeHtml = homeResponse.data;
+        
+        if (homeHtml.includes('Usuario de búsqueda básica') || homeHtml.includes('NMSK12')) {
+          console.log('✅ Sesión verificada correctamente');
+          return true;
+        } else {
+          console.log('❌ Sesión no válida después del login');
+          this.isLoggedIn = false;
+          throw new Error('Sesión no válida');
+        }
       } else {
         console.log('❌ Login fallido - HTML recibido:', loginHtml.substring(0, 300));
         throw new Error('Login fallido');
@@ -137,9 +150,8 @@ class SeekerAdvanced {
     try {
       console.log(`🚀 Consulta completa para DNI: ${dni}`);
       
-      if (!this.isLoggedIn) {
-        await this.login();
-      }
+      // Siempre hacer login fresco para asegurar sesión válida
+      await this.login();
 
       // Paso 1: Petición AJAX
       const ajaxUrl = `${config.seekerBaseUrl}/index.php?action=validate`;
@@ -538,18 +550,8 @@ class SeekerAdvanced {
     try {
       console.log(`🔍 Iniciando búsqueda por nombres...`);
       
-      // 1. Login con timeout específico
-      try {
-        await Promise.race([
-          this.login(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Login timeout')), 20000)
-          )
-        ]);
-      } catch (error) {
-        console.error('❌ Error en login para búsqueda por nombres:', error.message);
-        throw new Error(`Login fallido: ${error.message}`);
-      }
+      // 1. Login fresco para asegurar sesión válida
+      await this.login();
       
       // 2. Realizar búsqueda AJAX por nombres
       const searchData = {
