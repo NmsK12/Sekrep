@@ -5,15 +5,22 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
+// Configuración por variables de entorno
+const BASE_URL = process.env.BASE_URL || 'https://seeker.lat';
+const SEEKER_USER = process.env.SEEKER_USER || 'NmsK12';
+const SEEKER_PASS = process.env.SEEKER_PASS || '6PEWxyISpy';
+const REQUEST_TIMEOUT_MS = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
+
 class Bridge {
   constructor() {
     this.session = axios.create({
-      timeout: 30000,
+      timeout: REQUEST_TIMEOUT_MS,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
     this.cookie = null;
+    this.baseUrl = BASE_URL;
   }
 
   async login() {
@@ -21,18 +28,18 @@ class Bridge {
       console.log('🔐 Iniciando sesión...');
       
       // 1. Obtener página de login
-      const loginPage = await this.session.get('https://seeker.lat/index.php?view=login');
+      const loginPage = await this.session.get(`${this.baseUrl}/index.php?view=login`);
       const $ = cheerio.load(loginPage.data);
       
       // 2. Encontrar el formulario
       const form = $('form').first();
       const action = form.attr('action') || '';
-      const actionUrl = action.startsWith('http') ? action : 'https://seeker.lat/' + action.replace(/^\//, '');
+      const actionUrl = action.startsWith('http') ? action : `${this.baseUrl}/` + action.replace(/^\//, '');
       
       // 3. Preparar datos del formulario
       const formData = {
-        usuario: 'NmsK12',
-        contrasena: '6PEWxyISpy'
+        usuario: SEEKER_USER,
+        contrasena: SEEKER_PASS
       };
       
       console.log('📤 Enviando credenciales...');
@@ -41,8 +48,8 @@ class Bridge {
       const loginResponse = await this.session.post(actionUrl, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Referer': 'https://seeker.lat/index.php?view=login',
-          'Origin': 'https://seeker.lat'
+          'Referer': `${this.baseUrl}/index.php?view=login`,
+          'Origin': this.baseUrl
         }
       });
       
@@ -60,10 +67,10 @@ class Bridge {
       }
       
       // 6. Verificar login
-      const homeResponse = await this.session.get('https://seeker.lat/index.php?view=home', {
+      const homeResponse = await this.session.get(`${this.baseUrl}/index.php?view=home`, {
         headers: {
           'Cookie': this.cookie,
-          'Referer': 'https://seeker.lat/index.php?view=login'
+          'Referer': `${this.baseUrl}/index.php?view=login`
         }
       });
       
@@ -97,10 +104,10 @@ class Bridge {
       }
       
       // 2. Ir a la página de home
-      const homeResponse = await this.session.get('https://seeker.lat/index.php?view=home', {
+      const homeResponse = await this.session.get(`${this.baseUrl}/index.php?view=home`, {
         headers: {
           'Cookie': this.cookie,
-          'Referer': 'https://seeker.lat/index.php?view=home'
+          'Referer': `${this.baseUrl}/index.php?view=home`
         }
       });
       
@@ -115,12 +122,12 @@ class Bridge {
       console.log('📤 Datos de búsqueda:', searchData);
       
       // 4. Hacer búsqueda AJAX
-      const searchResponse = await this.session.post('https://seeker.lat/index.php?action=validate', searchData, {
+      const searchResponse = await this.session.post(`${this.baseUrl}/index.php?action=validate`, searchData, {
         headers: {
           'Cookie': this.cookie,
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Referer': 'https://seeker.lat/index.php?view=home',
-          'Origin': 'https://seeker.lat',
+          'Referer': `${this.baseUrl}/index.php?view=home`,
+          'Origin': this.baseUrl,
           'X-Requested-With': 'XMLHttpRequest'
         }
       });
@@ -147,11 +154,11 @@ class Bridge {
           
           // Asegurar que la URL sea absoluta
           if (redirectUrl.startsWith('./')) {
-            redirectUrl = 'https://seeker.lat/' + redirectUrl.substring(2);
+            redirectUrl = `${this.baseUrl}/` + redirectUrl.substring(2);
           } else if (redirectUrl.startsWith('/')) {
-            redirectUrl = 'https://seeker.lat' + redirectUrl;
+            redirectUrl = this.baseUrl + redirectUrl;
           } else if (!redirectUrl.startsWith('http')) {
-            redirectUrl = 'https://seeker.lat/' + redirectUrl;
+            redirectUrl = `${this.baseUrl}/` + redirectUrl;
           }
           
           console.log('🔗 URL corregida:', redirectUrl);
@@ -160,7 +167,7 @@ class Bridge {
           const resultResponse = await this.session.get(redirectUrl, {
             headers: {
               'Cookie': this.cookie,
-              'Referer': 'https://seeker.lat/index.php?view=home'
+              'Referer': `${this.baseUrl}/index.php?view=home`
             }
           });
           
