@@ -55,12 +55,87 @@ class SeekerPuppeteer {
       // Esperar a que cargue el formulario
       await this.page.waitForSelector('form', { timeout: 10000 });
       
-      // Llenar el formulario
+      // Llenar el formulario - probar diferentes selectores
       await this.page.type('input[name="usuario"]', config.seekerUser);
-      await this.page.type('input[name="password"]', config.seekerPassword);
       
-      // Hacer clic en el botón de login
-      await this.page.click('input[type="submit"], button[type="submit"]');
+      // Probar diferentes selectores para el campo de contraseña
+      const passwordSelectors = [
+        'input[name="password"]',
+        'input[name="contrasena"]',
+        'input[type="password"]',
+        'input[name="pass"]'
+      ];
+      
+      let passwordField = null;
+      for (const selector of passwordSelectors) {
+        try {
+          passwordField = await this.page.$(selector);
+          if (passwordField) {
+            console.log(`🔍 Campo de contraseña encontrado con selector: ${selector}`);
+            break;
+          }
+        } catch (e) {
+          // Continuar con el siguiente selector
+        }
+      }
+      
+      if (!passwordField) {
+        // Si no encontramos el campo, listar todos los inputs disponibles
+        const inputs = await this.page.$$eval('input', inputs => 
+          inputs.map(input => ({
+            name: input.name,
+            type: input.type,
+            id: input.id,
+            placeholder: input.placeholder
+          }))
+        );
+        console.log('📋 Inputs disponibles:', inputs);
+        throw new Error('No se encontró el campo de contraseña');
+      }
+      
+      await this.page.type('input[type="password"]', config.seekerPassword);
+      
+      // Hacer clic en el botón de login - probar diferentes selectores
+      const submitSelectors = [
+        'input[type="submit"]',
+        'button[type="submit"]',
+        'button:contains("Login")',
+        'button:contains("Entrar")',
+        'input[value*="Login"]',
+        'input[value*="Entrar"]',
+        'button',
+        'input[type="button"]'
+      ];
+      
+      let submitButton = null;
+      for (const selector of submitSelectors) {
+        try {
+          submitButton = await this.page.$(selector);
+          if (submitButton) {
+            console.log(`🔍 Botón de submit encontrado con selector: ${selector}`);
+            break;
+          }
+        } catch (e) {
+          // Continuar con el siguiente selector
+        }
+      }
+      
+      if (!submitButton) {
+        // Si no encontramos el botón, listar todos los botones disponibles
+        const buttons = await this.page.$$eval('button, input[type="submit"], input[type="button"]', buttons => 
+          buttons.map(button => ({
+            type: button.type,
+            value: button.value,
+            text: button.textContent,
+            id: button.id,
+            className: button.className
+          }))
+        );
+        console.log('📋 Botones disponibles:', buttons);
+        throw new Error('No se encontró el botón de submit');
+      }
+      
+      await this.page.click('input[type="submit"], button[type="submit"], button');
       
       // Esperar a que navegue
       await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
