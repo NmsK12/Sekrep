@@ -14,6 +14,9 @@ const consultaSimpleRoutes = require('./routes/consultaSimple');
 
 const app = express();
 
+// Configurar trust proxy para Railway
+app.set('trust proxy', 1);
+
 // Middleware de seguridad
 app.use(helmet());
 

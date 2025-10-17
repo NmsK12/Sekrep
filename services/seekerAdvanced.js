@@ -565,6 +565,7 @@ class SeekerAdvanced {
       });
 
       console.log(`📥 Respuesta de búsqueda recibida (${searchResponse.data.length} caracteres)`);
+      console.log(`📄 Contenido de respuesta:`, searchResponse.data);
       
       // 3. Parsear resultados
       const resultados = this.parsearResultadosNombres(searchResponse.data);
