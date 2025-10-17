@@ -1,6 +1,7 @@
 // API simple y limpia
 
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const Bridge = require('./bridge');
 
@@ -10,6 +11,11 @@ const bridge = new Bridge();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Servir imagen placeholder para foto faltante
+app.get('/ft_no_disponible.jpg', (req, res) => {
+  res.sendFile(path.join(__dirname, 'ft_no_disponible.jpg'));
+});
 
 // Ruta principal
 app.get('/', (req, res) => {

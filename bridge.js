@@ -208,6 +208,9 @@ class Bridge {
               foto = src;
             }
           }
+          if (!foto) {
+            foto = '/ft_no_disponible.jpg';
+          }
           
           // Extraer tablas adicionales
           const telefonos = [];
@@ -318,6 +321,9 @@ class Bridge {
         if (src && src.startsWith('data:image/')) {
           foto = src;
         }
+      }
+      if (!foto) {
+        foto = '/ft_no_disponible.jpg';
       }
       
       // Extraer tablas adicionales
