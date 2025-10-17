@@ -157,16 +157,21 @@ class SeekerPuppeteer {
         await submitButton.click();
       } catch (e) {
         console.log('🔄 Intentando clic alternativo...');
-        await this.page.evaluate((button) => button.click(), submitButton);
+        try {
+          // Usar el selector directamente
+          await this.page.click('input[type="submit"]');
+        } catch (e2) {
+          console.log('🔄 Intentando con JavaScript...');
+          // Usar JavaScript para hacer clic
+          await this.page.evaluate(() => {
+            const button = document.querySelector('input[type="submit"]');
+            if (button) button.click();
+          });
+        }
       }
       
-      // Esperar a que navegue o que cambie la página
-      try {
-        await this.page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 });
-      } catch (e) {
-        console.log('🔄 Esperando cambio de URL...');
-        await this.page.waitForFunction(() => window.location.href !== window.location.href, { timeout: 5000 });
-      }
+      // Esperar un poco para que procese el formulario
+      await this.page.waitForTimeout(3000);
       
       // Verificar si el login fue exitoso
       const currentUrl = this.page.url();
