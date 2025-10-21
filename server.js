@@ -44,7 +44,10 @@ app.get('/', (req, res) => {
       'GET /foto?dni={dni}': 'Obtener foto por DNI',
       
       // Gestión de caché - Formato corto
-      'GET /stats': 'Obtener estadísticas del caché'
+      'GET /stats': 'Obtener estadísticas del caché',
+      
+      // Endpoint META - TODO
+      'GET /meta?dni={dni}': 'Obtener TODOS los datos (META)'
     },
     examples: {
       dni_completo: 'GET /dni?dni=80660244',
@@ -55,6 +58,7 @@ app.get('/', (req, res) => {
       correos_dni: 'GET /corr?dni=80660244',
       riesgo_dni: 'GET /risk?dni=80660244',
       foto_dni: 'GET /foto?dni=80660244',
+      meta_completo: 'GET /meta?dni=80660244'
     },
   });
 });
@@ -295,6 +299,77 @@ app.get('/stats', (req, res) => {
   }
 });
 
+// Endpoint META - Entrega TODO absolutamente todo
+app.get('/meta', async (req, res) => {
+  try {
+    const { dni } = req.query;
+    if (!dni) {
+      return res.status(400).json({ success: false, message: 'DNI es requerido' });
+    }
+    if (!/^\d{8}$/.test(dni)) {
+      return res.status(400).json({ success: false, message: 'DNI debe ser 8 dígitos' });
+    }
+    console.log(`🔍 META API recibió consulta completa para DNI: ${dni}`);
+    const resultado = await bridge.buscarDNI(dni);
+    
+    if (resultado.success && resultado.data) {
+      // Crear respuesta META con TODO absolutamente todo
+      const metaData = {
+        // Información básica
+        dni: resultado.data.dni,
+        nombre: resultado.data.nombre,
+        nombres: resultado.data.nombres,
+        apellidos: resultado.data.apellidos,
+        
+        // Datos personales completos
+        datos_personales: resultado.data.datos || {},
+        
+        // Foto
+        foto: resultado.data.foto,
+        
+        // Teléfonos con DNI incluido
+        telefonos: (resultado.data.telefonos || []).map(telefono => ({
+          ...telefono,
+          dni: resultado.data.dni
+        })),
+        
+        // Árbol familiar completo
+        arbol_familiar: resultado.data.arbol || [],
+        
+        // Correos (con mensaje personalizado si está vacío)
+        correos: resultado.data.correos || [],
+        
+        // Datos de riesgo (con mensaje personalizado si está vacío)
+        riesgo_crediticio: resultado.data.riesgo || [],
+        
+        // Información del sistema
+        metadata: {
+          consultado_en: new Date().toISOString(),
+          desde_cache: resultado.from_cache || false,
+          version_api: "2.0.0",
+          endpoint_usado: "META",
+          total_telefonos: (resultado.data.telefonos || []).length,
+          total_familiares: (resultado.data.arbol || []).length,
+          total_correos: (resultado.data.correos || []).length,
+          total_riesgos: (resultado.data.riesgo || []).length
+        }
+      };
+
+      res.json({
+        success: true,
+        message: 'Consulta META exitosa - Todos los datos obtenidos',
+        data: metaData,
+        from_cache: resultado.from_cache || false
+      });
+    } else {
+      res.json(resultado);
+    }
+  } catch (error) {
+    console.error('❌ Error en endpoint META:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
+  }
+});
+
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
@@ -312,12 +387,14 @@ app.listen(PORT, () => {
   console.log('   GET  /risk?dni={dni} - Obtener datos de riesgo');
   console.log('   GET  /foto?dni={dni} - Obtener foto');
   console.log('   GET  /stats - Estadísticas del caché');
+  console.log('   GET  /meta?dni={dni} - Obtener TODOS los datos (META)');
   console.log('   GET  /                           - Información completa de la API');
   console.log('🔧 Ejemplos de uso:');
   console.log(`   curl "http://localhost:${PORT}/dni?dni=80660244"`);
   console.log(`   curl "http://localhost:${PORT}/telp?tel=904684131"`);
   console.log(`   curl "http://localhost:${PORT}/telp?tel=80660244"`);
   console.log(`   curl "http://localhost:${PORT}/arg?dni=80660244"`);
+  console.log(`   curl "http://localhost:${PORT}/meta?dni=80660244"`);
   console.log('💾 Sistema de caché permanente - Los datos se guardan para siempre');
 });
 
