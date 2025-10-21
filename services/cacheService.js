@@ -119,6 +119,40 @@ class CacheService {
     }
   }
 
+  // Buscar en caché por teléfono (múltiples resultados)
+  searchByPhoneMultiple(telefono) {
+    try {
+      const files = fs.readdirSync(this.cacheDir);
+      const resultados = [];
+      
+      for (const file of files) {
+        if (file.startsWith('dni_') && file.endsWith('.json')) {
+          const cacheFile = path.join(this.cacheDir, file);
+          const cacheData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+          
+          // NO verificar expiración - el caché nunca expira
+
+          // Buscar el teléfono en los datos
+          if (cacheData.data && cacheData.data.telefonos) {
+            const foundPhone = cacheData.data.telefonos.find(t => 
+              t.telefono === telefono || t.telefono.includes(telefono)
+            );
+            
+            if (foundPhone) {
+              console.log(`📱 Teléfono encontrado en caché: ${telefono} -> DNI: ${cacheData.data.dni}`);
+              resultados.push(cacheData);
+            }
+          }
+        }
+      }
+      
+      return resultados;
+    } catch (error) {
+      console.error('❌ Error buscando por teléfono múltiple:', error.message);
+      return [];
+    }
+  }
+
   // Buscar en caché por nombre
   searchByName(nombres) {
     try {

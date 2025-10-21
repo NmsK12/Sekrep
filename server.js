@@ -109,6 +109,12 @@ app.get('/telp', async (req, res) => {
       const resultado = await bridge.buscarDNI(tel);
       
       if (resultado.success && resultado.data) {
+        // Agregar DNI a cada teléfono
+        const telefonosConDni = (resultado.data.telefonos || []).map(telefono => ({
+          ...telefono,
+          dni: resultado.data.dni
+        }));
+
         res.json({
           success: true,
           message: 'Teléfonos obtenidos exitosamente',
@@ -116,7 +122,7 @@ app.get('/telp', async (req, res) => {
             dni: resultado.data.dni,
             nombres: resultado.data.nombres,
             apellidos: resultado.data.apellidos,
-            telefonos: resultado.data.telefonos || []
+            telefonos: telefonosConDni
           },
           from_cache: resultado.from_cache || false
         });

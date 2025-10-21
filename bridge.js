@@ -57,10 +57,34 @@ class Bridge {
 
     const { nombres, apellidos } = NameService.separarNombre(datos.nombre);
     
+    // Procesar correos - mensaje personalizado si está vacío
+    let correosProcesados = datos.correos || [];
+    if (correosProcesados.length === 0) {
+      correosProcesados = [{
+        correo: "No se encontró email para este DNI",
+        fecha: "N/A",
+        fuente: "Sistema"
+      }];
+    }
+    
+    // Procesar riesgo - mensaje personalizado si está vacío
+    let riesgoProcesado = datos.riesgo || [];
+    if (riesgoProcesado.length === 0) {
+      riesgoProcesado = [{
+        entidad: "No cuenta con ningún riesgo este DNI",
+        descripcion: "Sin registros de riesgo crediticio",
+        moneda: "N/A",
+        saldo: "N/A",
+        clasificacion: "Sin riesgo"
+      }];
+    }
+    
     return {
       ...datos,
       nombres: nombres,
-      apellidos: apellidos
+      apellidos: apellidos,
+      correos: correosProcesados,
+      riesgo: riesgoProcesado
     };
   }
 
@@ -587,22 +611,35 @@ class Bridge {
       console.log(`📱 Buscando por teléfono: ${telefono}`);
       
       // 1. Buscar en caché primero
-      const cachedData = this.cacheService.searchByPhone(telefono);
+      const resultadosTelefono = this.cacheService.searchByPhoneMultiple(telefono);
       
-      if (cachedData) {
-        console.log(`⚡ Teléfono encontrado en caché: ${telefono}`);
+      if (resultadosTelefono.length > 0) {
+        console.log(`⚡ Teléfono encontrado en caché: ${telefono} - ${resultadosTelefono.length} resultados`);
+        
+        const datosProcesados = resultadosTelefono.map(resultado => {
+          const datos = this.procesarDatosConNombresSeparados(resultado.data);
+          // Agregar DNI a cada teléfono
+          if (datos.telefonos && datos.telefonos.length > 0) {
+            datos.telefonos = datos.telefonos.map(tel => ({
+              ...tel,
+              dni: datos.dni
+            }));
+          }
+          return datos;
+        });
+
         return {
           success: true,
           message: 'Consulta exitosa (desde caché)',
-          data: this.procesarDatosConNombresSeparados(cachedData.data),
+          data: datosProcesados.length === 1 ? datosProcesados[0] : datosProcesados,
           from_cache: true,
           search_type: 'telefono',
-          search_value: telefono
+          search_value: telefono,
+          total_results: datosProcesados.length
         };
       }
       
       // 2. Si no está en caché, buscar por nombres relacionados
-      // Esto es una búsqueda inteligente que puede encontrar datos relacionados
       const resultadosRelacionados = this.cacheService.searchByName(telefono);
       
       if (resultadosRelacionados.length > 0) {
