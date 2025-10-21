@@ -7,7 +7,13 @@ const path = require('path');
 
 class CacheService {
   constructor() {
-    this.cacheDir = path.join(__dirname, '..', 'cache');
+    // Usar directorio persistente en Railway
+    // Railway mantiene /app como directorio persistente
+    if (process.env.NODE_ENV === 'production') {
+      this.cacheDir = '/app/cache';
+    } else {
+      this.cacheDir = path.join(__dirname, '..', 'cache');
+    }
     this.ensureCacheDir();
   }
 
@@ -15,6 +21,13 @@ class CacheService {
     if (!fs.existsSync(this.cacheDir)) {
       fs.mkdirSync(this.cacheDir, { recursive: true });
       console.log('📁 Directorio de caché creado:', this.cacheDir);
+    }
+    
+    // Información sobre persistencia del caché
+    if (process.env.NODE_ENV === 'production') {
+      console.log('💾 Caché en producción: Los datos se mantienen entre reinicios');
+    } else {
+      console.log('💾 Caché local: Los datos se mantienen entre reinicios');
     }
   }
 

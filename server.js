@@ -21,33 +21,17 @@ app.get('/ft_no_disponible.jpg', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'API de Consultas - Puente Simple con Caché Inteligente',
+    message: 'API',
     version: '2.0.0',
-    features: [
-      'Sistema de caché inteligente',
-      'Nombres y apellidos separados',
-      'Endpoints específicos por tipo de dato',
-      'Búsqueda rápida por teléfono',
-      'Gestión automática de caché'
-    ],
     endpoints: {
-      // Consultas principales - Formato corto
-      'GET /dni?dni={dni}': 'Consultar datos básicos por DNI (DNI, nombre, datos, foto)',
-      'GET /nom?nom={nombres}': 'Buscar personas por nombres (con caché)',
-      'GET /telp?tel={telefono}': 'Buscar por teléfono (solo caché)',
-      'GET /telp?tel={dni}': 'Obtener teléfonos por DNI (8 dígitos)',
-      
-      // Endpoints específicos - Formato corto
+      'GET /dni?dni={dni}': 'Consultar persona completa por DNI',
+      'GET /nom?nom={nombres}': 'Buscar personas por nombres',
+      'GET /telp?tel={telefono}': 'Buscar por teléfono',
+      'GET /telp?tel={dni}': 'Obtener teléfonos por DNI',
       'GET /arg?dni={dni}': 'Obtener árbol genealógico por DNI',
       'GET /corr?dni={dni}': 'Obtener correos por DNI',
       'GET /risk?dni={dni}': 'Obtener datos de riesgo por DNI',
-      'GET /foto?dni={dni}': 'Obtener foto por DNI',
-      
-      // Gestión de caché - Formato corto
-      'GET /stats': 'Obtener estadísticas del caché',
-      
-      // Endpoint META - TODO
-      'GET /meta?dni={dni}': 'Obtener TODOS los datos (META)'
+      'GET /foto?dni={dni}': 'Obtener foto por DNI'
     },
     examples: {
       dni_completo: 'GET /dni?dni=80660244',
@@ -57,9 +41,8 @@ app.get('/', (req, res) => {
       arbol_dni: 'GET /arg?dni=80660244',
       correos_dni: 'GET /corr?dni=80660244',
       riesgo_dni: 'GET /risk?dni=80660244',
-      foto_dni: 'GET /foto?dni=80660244',
-      meta_completo: 'GET /meta?dni=80660244'
-    },
+      foto_dni: 'GET /foto?dni=80660244'
+    }
   });
 });
 
