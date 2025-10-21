@@ -32,7 +32,7 @@ app.get('/', (req, res) => {
     ],
     endpoints: {
       // Consultas principales - Formato corto
-      'GET /dni?dni={dni}': 'Consultar persona completa por DNI (con caché)',
+      'GET /dni?dni={dni}': 'Consultar datos básicos por DNI (DNI, nombre, datos, foto)',
       'GET /nom?nom={nombres}': 'Buscar personas por nombres (con caché)',
       'GET /telp?tel={telefono}': 'Buscar por teléfono (solo caché)',
       'GET /telp?tel={dni}': 'Obtener teléfonos por DNI (8 dígitos)',
@@ -63,7 +63,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Endpoint para buscar por DNI - Formato corto
+// Endpoint para buscar por DNI - Formato corto (solo datos básicos)
 app.get('/dni', async (req, res) => {
   try {
     const { dni } = req.query;
@@ -75,7 +75,23 @@ app.get('/dni', async (req, res) => {
     }
     console.log(`🔍 API recibió consulta DNI: ${dni}`);
     const resultado = await bridge.buscarDNI(dni);
-    res.json(resultado);
+    
+    if (resultado.success && resultado.data) {
+      // Solo retornar datos básicos: DNI, nombre, datos personales y foto
+      res.json({
+        success: true,
+        message: resultado.from_cache ? 'Consulta exitosa (desde caché)' : 'Consulta exitosa',
+        data: {
+          dni: resultado.data.dni,
+          nombre: resultado.data.nombre,
+          datos: resultado.data.datos || {},
+          foto: resultado.data.foto
+        },
+        from_cache: resultado.from_cache || false
+      });
+    } else {
+      res.json(resultado);
+    }
   } catch (error) {
     console.error('❌ Error en endpoint DNI:', error.message);
     res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
@@ -378,7 +394,7 @@ app.listen(PORT, () => {
   console.log(`📡 Puerto: ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
   console.log('📋 Endpoints principales (formato corto):');
-  console.log('   GET  /dni?dni={dni} - Consultar persona completa por DNI (con caché)');
+  console.log('   GET  /dni?dni={dni} - Consultar datos básicos por DNI (DNI, nombre, datos, foto)');
   console.log('   GET  /nom?nom={nombres} - Buscar personas por nombres (con caché)');
   console.log('   GET  /telp?tel={telefono} - Buscar por teléfono (solo caché)');
   console.log('   GET  /telp?tel={dni} - Obtener teléfonos por DNI (8 dígitos)');
