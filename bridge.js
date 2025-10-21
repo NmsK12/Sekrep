@@ -6,6 +6,8 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
+const CacheService = require('./services/cacheService');
+const NameService = require('./services/nameService');
 
 // Configuración por variables de entorno
 const BASE_URL = process.env.BASE_URL || 'https://seeker.lat';
@@ -24,6 +26,7 @@ class Bridge {
     this.cookie = null;
     this.baseUrl = BASE_URL;
     this._cachedDefaultPhotoDataUrl = null;
+    this.cacheService = new CacheService();
   }
 
   getDefaultPhotoDataUrl() {
@@ -40,6 +43,25 @@ class Bridge {
       console.error('⚠️ No se pudo leer ft_no_disponible.jpg:', e.message);
       return null;
     }
+  }
+
+  /**
+   * Procesa los datos separando el nombre en nombres y apellidos
+   * @param {object} datos - Los datos originales
+   * @returns {object} - Los datos procesados con nombres separados
+   */
+  procesarDatosConNombresSeparados(datos) {
+    if (!datos || !datos.nombre) {
+      return datos;
+    }
+
+    const { nombres, apellidos } = NameService.separarNombre(datos.nombre);
+    
+    return {
+      ...datos,
+      nombres: nombres,
+      apellidos: apellidos
+    };
   }
 
   async login() {
@@ -114,7 +136,21 @@ class Bridge {
     try {
       console.log(`🔍 Buscando DNI: ${dni}`);
       
-      // 1. Hacer login si no hay cookie
+      // 1. Verificar caché primero
+      const cacheKey = this.cacheService.getCacheKey(dni);
+      const cachedData = this.cacheService.getFromCache(cacheKey);
+      
+      if (cachedData) {
+        console.log(`⚡ Datos obtenidos del caché para DNI: ${dni}`);
+        return {
+          success: true,
+          message: 'Consulta exitosa (desde caché)',
+          data: this.procesarDatosConNombresSeparados(cachedData.data),
+          from_cache: true
+        };
+      }
+      
+      // 2. Hacer login si no hay cookie
       if (!this.cookie) {
         const loginOk = await this.login();
         if (!loginOk) {
@@ -299,19 +335,25 @@ class Bridge {
             }
           });
           
+          const datosCompletos = {
+            dni: dniEncontrado || dni,
+            nombre: nombre,
+            datos: datos,
+            foto: foto,
+            telefonos: telefonos,
+            riesgo: riesgo,
+            arbol: arbol,
+            correos: correos
+          };
+
+          // Guardar en caché
+          this.cacheService.saveToCache(cacheKey, { data: datosCompletos });
+
           return {
             success: true,
             message: 'Consulta exitosa',
-            data: {
-              dni: dniEncontrado || dni,
-              nombre: nombre,
-              datos: datos,
-              foto: foto,
-              telefonos: telefonos,
-              riesgo: riesgo,
-              arbol: arbol,
-              correos: correos
-            }
+            data: this.procesarDatosConNombresSeparados(datosCompletos),
+            from_cache: false
           };
         }
       }
@@ -413,19 +455,25 @@ class Bridge {
         }
       });
       
+      const datosCompletos = {
+        dni: dniEncontrado || dni,
+        nombre: nombre,
+        datos: datos,
+        foto: foto,
+        telefonos: telefonos,
+        riesgo: riesgo,
+        arbol: arbol,
+        correos: correos
+      };
+
+      // Guardar en caché
+      this.cacheService.saveToCache(cacheKey, { data: datosCompletos });
+
       return {
         success: true,
         message: 'Consulta exitosa',
-        data: {
-          dni: dniEncontrado || dni,
-          nombre: nombre,
-          datos: datos,
-          foto: foto,
-          telefonos: telefonos,
-          riesgo: riesgo,
-          arbol: arbol,
-          correos: correos
-        }
+        data: this.procesarDatosConNombresSeparados(datosCompletos),
+        from_cache: false
       };
       
     } catch (error) {
@@ -528,6 +576,107 @@ class Bridge {
       return { success: false, message: 'Error en búsqueda', error: error.message };
     }
   }
+
+  /**
+   * Buscar por teléfono usando caché inteligente
+   * @param {string} telefono - El teléfono a buscar
+   * @returns {object} - Resultado de la búsqueda
+   */
+  async buscarPorTelefono(telefono) {
+    try {
+      console.log(`📱 Buscando por teléfono: ${telefono}`);
+      
+      // 1. Buscar en caché primero
+      const cachedData = this.cacheService.searchByPhone(telefono);
+      
+      if (cachedData) {
+        console.log(`⚡ Teléfono encontrado en caché: ${telefono}`);
+        return {
+          success: true,
+          message: 'Consulta exitosa (desde caché)',
+          data: this.procesarDatosConNombresSeparados(cachedData.data),
+          from_cache: true,
+          search_type: 'telefono',
+          search_value: telefono
+        };
+      }
+      
+      // 2. Si no está en caché, buscar por nombres relacionados
+      // Esto es una búsqueda inteligente que puede encontrar datos relacionados
+      const resultadosRelacionados = this.cacheService.searchByName(telefono);
+      
+      if (resultadosRelacionados.length > 0) {
+        console.log(`🔍 ${resultadosRelacionados.length} resultados relacionados encontrados en caché`);
+        return {
+          success: true,
+          message: 'Resultados relacionados encontrados en caché',
+          data: resultadosRelacionados.map(resultado => 
+            this.procesarDatosConNombresSeparados(resultado.data)
+          ),
+          from_cache: true,
+          search_type: 'telefono',
+          search_value: telefono,
+          related_results: true
+        };
+      }
+      
+      return {
+        success: false,
+        message: 'Teléfono no encontrado en caché. Use búsqueda por DNI para obtener datos completos.',
+        search_type: 'telefono',
+        search_value: telefono
+      };
+      
+    } catch (error) {
+      console.error('❌ Error buscando por teléfono:', error.message);
+      return { success: false, message: 'Error en búsqueda por teléfono', error: error.message };
+    }
+  }
+
+  /**
+   * Buscar por nombre usando caché inteligente
+   * @param {string} nombres - Los nombres a buscar
+   * @returns {object} - Resultado de la búsqueda
+   */
+  async buscarPorNombre(nombres) {
+    try {
+      console.log(`👤 Buscando por nombre: ${nombres}`);
+      
+      // 1. Buscar en caché primero
+      const resultadosCaché = this.cacheService.searchByName(nombres);
+      
+      if (resultadosCaché.length > 0) {
+        console.log(`⚡ ${resultadosCaché.length} resultados encontrados en caché`);
+        return {
+          success: true,
+          message: 'Consulta exitosa (desde caché)',
+          data: resultadosCaché.map(resultado => 
+            this.procesarDatosConNombresSeparados(resultado.data)
+          ),
+          from_cache: true,
+          search_type: 'nombre',
+          search_value: nombres,
+          total: resultadosCaché.length
+        };
+      }
+      
+      // 2. Si no está en caché, hacer búsqueda normal
+      return await this.buscarNombres(nombres);
+      
+    } catch (error) {
+      console.error('❌ Error buscando por nombre:', error.message);
+      return { success: false, message: 'Error en búsqueda por nombre', error: error.message };
+    }
+  }
+
+  /**
+   * Obtener estadísticas del caché
+   * @returns {object} - Estadísticas del caché
+   */
+  getCacheStats() {
+    return this.cacheService.getCacheStats();
+  }
+
 }
 
 module.exports = Bridge;
