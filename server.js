@@ -136,7 +136,37 @@ app.get('/telp', async (req, res) => {
       // Es un teléfono, buscar por teléfono
       console.log(`📱 API recibió consulta por teléfono: ${tel}`);
       const resultado = await bridge.buscarPorTelefono(tel);
-      res.json(resultado);
+      
+      if (resultado.success && resultado.data) {
+        // Solo retornar teléfonos con DNI incluido
+        let telefonosEncontrados = [];
+        
+        // Si es un solo resultado
+        if (!Array.isArray(resultado.data)) {
+          if (resultado.data.telefonos) {
+            telefonosEncontrados = resultado.data.telefonos;
+          }
+        } else {
+          // Si son múltiples resultados, combinar todos los teléfonos
+          resultado.data.forEach(persona => {
+            if (persona.telefonos) {
+              telefonosEncontrados = [...telefonosEncontrados, ...persona.telefonos];
+            }
+          });
+        }
+
+        res.json({
+          success: true,
+          message: 'Teléfonos encontrados',
+          data: {
+            telefonos: telefonosEncontrados
+          },
+          from_cache: resultado.from_cache || false,
+          total_results: telefonosEncontrados.length
+        });
+      } else {
+        res.json(resultado);
+      }
     } else {
       return res.status(400).json({ success: false, message: 'Debe ser DNI (8 dígitos) o teléfono (9 dígitos)' });
     }
