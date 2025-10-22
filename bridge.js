@@ -57,8 +57,17 @@ class Bridge {
 
     const { nombres, apellidos } = NameService.separarNombre(datos.nombre);
     
-    // Procesar correos - mensaje personalizado si está vacío
+    // Procesar correos - mensaje personalizado si está vacío o es email@protected
     let correosProcesados = datos.correos || [];
+    
+    // Filtrar correos no válidos
+    correosProcesados = correosProcesados.filter(correo => 
+      correo.correo && 
+      correo.correo !== '[email protected]' && 
+      correo.correo !== 'email@protected'
+    );
+    
+    // Si no hay correos válidos, mostrar mensaje personalizado
     if (correosProcesados.length === 0) {
       correosProcesados = [{
         correo: "No se encontró email para este DNI",
