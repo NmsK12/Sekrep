@@ -13,7 +13,7 @@ const NameService = require('./services/nameService');
 const BASE_URL = process.env.BASE_URL || 'https://seeker.lat';
 const SEEKER_USER = process.env.SEEKER_USER || 'NmsK12';
 const SEEKER_PASS = process.env.SEEKER_PASS || '6PEWxyISpy';
-const REQUEST_TIMEOUT_MS = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
+const REQUEST_TIMEOUT_MS = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '60000', 10); // 60 segundos
 
 class Bridge {
   constructor() {
@@ -512,7 +512,24 @@ class Bridge {
     } catch (error) {
       console.error('❌ Error buscando DNI:', error.message);
       console.error('❌ Error completo:', error);
-      return { success: false, message: 'Error en búsqueda', error: error.message };
+      
+      // Mensajes de error más descriptivos
+      let errorMessage = 'Error en búsqueda';
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        errorMessage = 'Tiempo de espera agotado. El servidor de Seeker.lat está tardando mucho en responder. Por favor, intenta de nuevo en unos momentos.';
+      } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        errorMessage = 'No se puede conectar a Seeker.lat. El servidor podría estar temporalmente fuera de línea.';
+      } else if (error.response && error.response.status === 502) {
+        errorMessage = 'Error 502: El servidor de Seeker.lat no está disponible en este momento.';
+      }
+      
+      return { 
+        success: false, 
+        message: errorMessage, 
+        error: error.message,
+        error_code: error.code,
+        suggestion: 'Intenta consultar este DNI más tarde o verifica que Seeker.lat esté funcionando correctamente.'
+      };
     }
   }
 
