@@ -1,0 +1,37 @@
+# ⚙️ Configuración para integración con Panel de Keys
+# 
+# Copia este contenido a tu archivo .env
+
+# ==============================================
+# PANEL DE ADMINISTRACIÓN DE KEYS
+# ==============================================
+
+# URL del panel donde se validan las API keys
+# En desarrollo (local):
+PANEL_URL=http://localhost:3001
+
+# En producción (Railway):
+# Cuando despliegues el panel, actualiza esta URL:
+# PANEL_URL=https://tu-panel-admin.up.railway.app
+
+# ==============================================
+# SEEKER CREDENTIALS (ya las tienes)
+# ==============================================
+SEEKER_USER=tu_usuario
+SEEKER_PASS=tu_contraseña
+
+# ==============================================
+# OTRAS CONFIGURACIONES (ya las tienes)
+# ==============================================
+REQUEST_TIMEOUT_MS=60000
+PORT=8080
+NODE_ENV=production
+
+# ==============================================
+# INSTRUCCIONES:
+# ==============================================
+# 1. Copia este contenido a tu archivo .env
+# 2. Asegúrate de que PANEL_URL apunte a tu panel
+# 3. En desarrollo: http://localhost:3001
+# 4. En producción: tu URL de Railway del panel
+

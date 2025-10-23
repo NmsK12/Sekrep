@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const Bridge = require('./bridge');
+const { validateKey } = require('./middleware/keyValidator');
 
 const app = express();
 const bridge = new Bridge();
@@ -35,21 +36,23 @@ app.get('/', (req, res) => {
       'GET /sunat?dni={dni}': 'Obtener trabajos SUNAT por DNI'
     },
     examples: {
-      dni_completo: 'GET /dni?dni=80660244',
-      nombres: 'GET /nom?nom=MIGUEL-MOSCOSO',
-      telefono: 'GET /telp?tel=904684131',
-      telefonos_dni: 'GET /telp?tel=80660244',
-      arbol_dni: 'GET /arg?dni=80660244',
-      correos_dni: 'GET /corr?dni=80660244',
-      riesgo_dni: 'GET /risk?dni=80660244',
-      foto_dni: 'GET /foto?dni=80660244',
-      sunat_dni: 'GET /sunat?dni=80660244'
-    }
+      dni_completo: 'GET /dni?dni=80660244&key=TU_API_KEY',
+      nombres: 'GET /nom?nom=MIGUEL-MOSCOSO&key=TU_API_KEY',
+      telefono: 'GET /telp?tel=904684131&key=TU_API_KEY',
+      telefonos_dni: 'GET /telp?tel=80660244&key=TU_API_KEY',
+      arbol_dni: 'GET /arg?dni=80660244&key=TU_API_KEY',
+      correos_dni: 'GET /corr?dni=80660244&key=TU_API_KEY',
+      riesgo_dni: 'GET /risk?dni=80660244&key=TU_API_KEY',
+      foto_dni: 'GET /foto?dni=80660244&key=TU_API_KEY',
+      sunat_dni: 'GET /sunat?dni=80660244&key=TU_API_KEY',
+      meta_completo: 'GET /meta?dni=80660244&key=TU_API_KEY'
+    },
+    nota: '🔐 Todos los endpoints requieren una API Key válida. Contacta a @zGatoO, @choco_tete o @WinniePoohOFC para obtener acceso.'
   });
 });
 
 // Endpoint para buscar por DNI - Formato corto (solo datos básicos)
-app.get('/dni', async (req, res) => {
+app.get('/dni', validateKey('dni'), async (req, res) => {
   try {
     const { dni } = req.query;
     if (!dni) {
@@ -75,7 +78,7 @@ app.get('/dni', async (req, res) => {
         from_cache: resultado.from_cache || false
       });
     } else {
-      res.json(resultado);
+    res.json(resultado);
     }
   } catch (error) {
     console.error('❌ Error en endpoint DNI:', error.message);
@@ -84,7 +87,7 @@ app.get('/dni', async (req, res) => {
 });
 
 // Endpoint para buscar por nombres - Formato corto
-app.get('/nom', async (req, res) => {
+app.get('/nom', validateKey('nom'), async (req, res) => {
   try {
     const { nom } = req.query;
     if (!nom) {
@@ -100,7 +103,7 @@ app.get('/nom', async (req, res) => {
 });
 
 // Endpoint para buscar por teléfono - Formato corto
-app.get('/telp', async (req, res) => {
+app.get('/telp', validateKey('telp'), async (req, res) => {
   try {
     const { tel } = req.query;
     if (!tel) {
@@ -180,7 +183,7 @@ app.get('/telp', async (req, res) => {
 
 
 // Endpoint para obtener árbol genealógico - Formato corto
-app.get('/arg', async (req, res) => {
+app.get('/arg', validateKey('arg'), async (req, res) => {
   try {
     const { dni } = req.query;
     if (!dni) {
@@ -214,7 +217,7 @@ app.get('/arg', async (req, res) => {
 });
 
 // Endpoint para obtener correos - Formato corto
-app.get('/corr', async (req, res) => {
+app.get('/corr', validateKey('corr'), async (req, res) => {
   try {
     const { dni } = req.query;
     if (!dni) {
@@ -248,7 +251,7 @@ app.get('/corr', async (req, res) => {
 });
 
 // Endpoint para obtener datos de riesgo - Formato corto
-app.get('/risk', async (req, res) => {
+app.get('/risk', validateKey('risk'), async (req, res) => {
   try {
     const { dni } = req.query;
     if (!dni) {
@@ -282,7 +285,7 @@ app.get('/risk', async (req, res) => {
 });
 
 // Endpoint para obtener foto - Formato corto
-app.get('/foto', async (req, res) => {
+app.get('/foto', validateKey('foto'), async (req, res) => {
   try {
     const { dni } = req.query;
     if (!dni) {
@@ -316,7 +319,7 @@ app.get('/foto', async (req, res) => {
 });
 
 // Endpoint para obtener trabajos SUNAT - Formato corto
-app.get('/sunat', async (req, res) => {
+app.get('/sunat', validateKey('sunat'), async (req, res) => {
   try {
     const { dni } = req.query;
     if (!dni) {
@@ -399,7 +402,7 @@ app.delete('/cache/:dni', (req, res) => {
 });
 
 // Endpoint META - Entrega TODO absolutamente todo
-app.get('/meta', async (req, res) => {
+app.get('/meta', validateKey('meta'), async (req, res) => {
   try {
     const { dni } = req.query;
     if (!dni) {
@@ -490,12 +493,13 @@ app.listen(PORT, () => {
   console.log('   GET  /meta?dni={dni} - Obtener TODOS los datos (META)');
   console.log('   GET  /                           - Información completa de la API');
   console.log('🔧 Ejemplos de uso:');
-  console.log(`   curl "http://localhost:${PORT}/dni?dni=80660244"`);
-  console.log(`   curl "http://localhost:${PORT}/telp?tel=904684131"`);
-  console.log(`   curl "http://localhost:${PORT}/telp?tel=80660244"`);
-  console.log(`   curl "http://localhost:${PORT}/arg?dni=80660244"`);
-  console.log(`   curl "http://localhost:${PORT}/meta?dni=80660244"`);
+  console.log(`   curl "http://localhost:${PORT}/dni?dni=80660244&key=TU_API_KEY"`);
+  console.log(`   curl "http://localhost:${PORT}/telp?tel=904684131&key=TU_API_KEY"`);
+  console.log(`   curl "http://localhost:${PORT}/arg?dni=80660244&key=TU_API_KEY"`);
+  console.log(`   curl "http://localhost:${PORT}/meta?dni=80660244&key=TU_API_KEY"`);
   console.log('💾 Sistema de caché permanente - Los datos se guardan para siempre');
+  console.log('🔐 API protegida con sistema de keys - Se requiere key válida para acceder');
+  console.log('📱 Panel de administración para gestionar keys en puerto 3001');
 });
 
 module.exports = app;
