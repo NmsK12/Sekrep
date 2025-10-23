@@ -398,13 +398,16 @@ class Bridge {
             trabajos: trabajos
           };
 
-          // Guardar en caché
-          this.cacheService.saveToCache(cacheKey, { data: datosCompletos });
+          // Procesar datos antes de guardar en caché (para filtrar emails inválidos)
+          const datosProcesados = this.procesarDatosConNombresSeparados(datosCompletos);
+
+          // Guardar en caché los datos YA procesados (sin [email protected])
+          this.cacheService.saveToCache(cacheKey, { data: datosProcesados });
 
           return {
             success: true,
             message: 'Consulta exitosa',
-            data: this.procesarDatosConNombresSeparados(datosCompletos),
+            data: datosProcesados,
             from_cache: false
           };
         }
@@ -537,13 +540,16 @@ class Bridge {
         trabajos: trabajos
       };
 
-      // Guardar en caché
-      this.cacheService.saveToCache(cacheKey, { data: datosCompletos });
+      // Procesar datos antes de guardar en caché (para filtrar emails inválidos)
+      const datosProcesados = this.procesarDatosConNombresSeparados(datosCompletos);
+
+      // Guardar en caché los datos YA procesados (sin [email protected])
+      this.cacheService.saveToCache(cacheKey, { data: datosProcesados });
 
       return {
         success: true,
         message: 'Consulta exitosa',
-        data: this.procesarDatosConNombresSeparados(datosCompletos),
+        data: datosProcesados,
         from_cache: false
       };
       
