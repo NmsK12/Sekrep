@@ -368,6 +368,68 @@ app.get('/stats', (req, res) => {
 });
 
 // Endpoint para limpiar caché de un DNI específico
+// Limpiar caché de un DNI específico (GET para facilidad de uso)
+app.get('/cache/:dni', (req, res) => {
+  try {
+    const { dni } = req.params;
+    const { action } = req.query;
+    
+    if (!/^\d{8}$/.test(dni)) {
+      return res.status(400).json({ success: false, message: 'DNI debe ser 8 dígitos' });
+    }
+    
+    const fs = require('fs');
+    const path = require('path');
+    const cacheDir = process.env.NODE_ENV === 'production' ? '/app/cache' : path.join(__dirname, 'cache');
+    const cacheFile = path.join(cacheDir, `dni_${dni}.json`);
+    
+    // Si action=delete o action=clear, eliminar caché
+    if (action === 'delete' || action === 'clear') {
+      if (fs.existsSync(cacheFile)) {
+        fs.unlinkSync(cacheFile);
+        console.log(`🗑️ Caché eliminado para DNI: ${dni}`);
+        res.json({
+          success: true,
+          message: `✅ Caché del DNI ${dni} eliminado exitosamente.\n\n🔄 La próxima consulta obtendrá datos actualizados sin [email protected]`,
+          dni: dni,
+          instrucciones: `Ahora vuelve a consultar: /corr?dni=${dni}&key=TU_KEY`
+        });
+      } else {
+        res.json({
+          success: false,
+          message: `❌ No existe caché para el DNI ${dni}`,
+          dni: dni
+        });
+      }
+    } else {
+      // Sin action, mostrar info del caché
+      if (fs.existsSync(cacheFile)) {
+        const stats = fs.statSync(cacheFile);
+        const cacheData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+        res.json({
+          success: true,
+          message: `ℹ️ Información del caché para DNI ${dni}`,
+          cache_exists: true,
+          cached_at: cacheData.timestamp || 'N/A',
+          file_size: `${(stats.size / 1024).toFixed(2)} KB`,
+          last_modified: stats.mtime,
+          para_eliminar: `Agrega ?action=delete a esta URL: /cache/${dni}?action=delete`
+        });
+      } else {
+        res.json({
+          success: false,
+          message: `❌ No existe caché para el DNI ${dni}`,
+          dni: dni
+        });
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error con caché:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
+  }
+});
+
+// También mantener DELETE para compatibilidad
 app.delete('/cache/:dni', (req, res) => {
   try {
     const { dni } = req.params;
@@ -385,13 +447,13 @@ app.delete('/cache/:dni', (req, res) => {
       console.log(`🗑️ Caché eliminado para DNI: ${dni}`);
       res.json({
         success: true,
-        message: `Caché del DNI ${dni} eliminado exitosamente. La próxima consulta obtendrá datos actualizados.`,
+        message: `✅ Caché del DNI ${dni} eliminado exitosamente.\n\n🔄 La próxima consulta obtendrá datos actualizados.`,
         dni: dni
       });
     } else {
       res.json({
         success: false,
-        message: `No existe caché para el DNI ${dni}`,
+        message: `❌ No existe caché para el DNI ${dni}`,
         dni: dni
       });
     }
