@@ -360,10 +360,28 @@ class Bridge {
           $('#correos table tbody tr').each((i, row) => {
             const c = $(row).find('td');
             if (c.length >= 3) {
-              correos.push({
-                correo: $(c[0]).text().trim(),
-                fecha: $(c[1]).text().trim(),
-                fuente: $(c[2]).text().trim()
+              const correo = $(c[0]).text().trim();
+              // Solo agregar si no es email@protected
+              if (correo && correo !== '[email protected]' && correo !== 'email@protected') {
+                correos.push({
+                  correo: correo,
+                  fecha: $(c[1]).text().trim(),
+                  fuente: $(c[2]).text().trim()
+                });
+              }
+            }
+          });
+          
+          const trabajos = [];
+          $('#trabajos table tbody tr').each((i, row) => {
+            const c = $(row).find('td');
+            if (c.length >= 5) {
+              trabajos.push({
+                ruc: $(c[0]).text().trim(),
+                denominacion: $(c[1]).text().trim(),
+                situacion: $(c[2]).text().trim(),
+                variable: $(c[3]).text().trim(),
+                fecha: $(c[4]).text().trim()
               });
             }
           });
@@ -376,7 +394,8 @@ class Bridge {
             telefonos: telefonos,
             riesgo: riesgo,
             arbol: arbol,
-            correos: correos
+            correos: correos,
+            trabajos: trabajos
           };
 
           // Guardar en caché
@@ -480,10 +499,28 @@ class Bridge {
       $('#correos table tbody tr').each((i, row) => {
         const c = $(row).find('td');
         if (c.length >= 3) {
-          correos.push({
-            correo: $(c[0]).text().trim(),
-            fecha: $(c[1]).text().trim(),
-            fuente: $(c[2]).text().trim()
+          const correo = $(c[0]).text().trim();
+          // Solo agregar si no es email@protected
+          if (correo && correo !== '[email protected]' && correo !== 'email@protected') {
+            correos.push({
+              correo: correo,
+              fecha: $(c[1]).text().trim(),
+              fuente: $(c[2]).text().trim()
+            });
+          }
+        }
+      });
+      
+      const trabajos = [];
+      $('#trabajos table tbody tr').each((i, row) => {
+        const c = $(row).find('td');
+        if (c.length >= 5) {
+          trabajos.push({
+            ruc: $(c[0]).text().trim(),
+            denominacion: $(c[1]).text().trim(),
+            situacion: $(c[2]).text().trim(),
+            variable: $(c[3]).text().trim(),
+            fecha: $(c[4]).text().trim()
           });
         }
       });
@@ -496,7 +533,8 @@ class Bridge {
         telefonos: telefonos,
         riesgo: riesgo,
         arbol: arbol,
-        correos: correos
+        correos: correos,
+        trabajos: trabajos
       };
 
       // Guardar en caché

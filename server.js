@@ -31,7 +31,8 @@ app.get('/', (req, res) => {
       'GET /arg?dni={dni}': 'Obtener árbol genealógico por DNI',
       'GET /corr?dni={dni}': 'Obtener correos por DNI',
       'GET /risk?dni={dni}': 'Obtener datos de riesgo por DNI',
-      'GET /foto?dni={dni}': 'Obtener foto por DNI'
+      'GET /foto?dni={dni}': 'Obtener foto por DNI',
+      'GET /sunat?dni={dni}': 'Obtener trabajos SUNAT por DNI'
     },
     examples: {
       dni_completo: 'GET /dni?dni=80660244',
@@ -41,7 +42,8 @@ app.get('/', (req, res) => {
       arbol_dni: 'GET /arg?dni=80660244',
       correos_dni: 'GET /corr?dni=80660244',
       riesgo_dni: 'GET /risk?dni=80660244',
-      foto_dni: 'GET /foto?dni=80660244'
+      foto_dni: 'GET /foto?dni=80660244',
+      sunat_dni: 'GET /sunat?dni=80660244'
     }
   });
 });
@@ -313,6 +315,40 @@ app.get('/foto', async (req, res) => {
   }
 });
 
+// Endpoint para obtener trabajos SUNAT - Formato corto
+app.get('/sunat', async (req, res) => {
+  try {
+    const { dni } = req.query;
+    if (!dni) {
+      return res.status(400).json({ success: false, message: 'DNI es requerido' });
+    }
+    if (!/^\d{8}$/.test(dni)) {
+      return res.status(400).json({ success: false, message: 'DNI debe ser 8 dígitos' });
+    }
+    console.log(`🏢 API recibió consulta trabajos SUNAT para DNI: ${dni}`);
+    const resultado = await bridge.buscarDNI(dni);
+    
+    if (resultado.success && resultado.data) {
+      res.json({
+        success: true,
+        message: 'Trabajos SUNAT obtenidos exitosamente',
+        data: {
+          dni: resultado.data.dni,
+          nombres: resultado.data.nombres,
+          apellidos: resultado.data.apellidos,
+          trabajos: resultado.data.trabajos || []
+        },
+        from_cache: resultado.from_cache || false
+      });
+    } else {
+      res.json(resultado);
+    }
+  } catch (error) {
+    console.error('❌ Error en endpoint sunat:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
+  }
+});
+
 // Endpoint para obtener estadísticas del caché - Formato corto
 app.get('/stats', (req, res) => {
   try {
@@ -415,6 +451,7 @@ app.listen(PORT, () => {
   console.log('   GET  /corr?dni={dni} - Obtener correos');
   console.log('   GET  /risk?dni={dni} - Obtener datos de riesgo');
   console.log('   GET  /foto?dni={dni} - Obtener foto');
+  console.log('   GET  /sunat?dni={dni} - Obtener trabajos SUNAT');
   console.log('   GET  /stats - Estadísticas del caché');
   console.log('   GET  /meta?dni={dni} - Obtener TODOS los datos (META)');
   console.log('   GET  /                           - Información completa de la API');
