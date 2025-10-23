@@ -364,6 +364,40 @@ app.get('/stats', (req, res) => {
   }
 });
 
+// Endpoint para limpiar caché de un DNI específico
+app.delete('/cache/:dni', (req, res) => {
+  try {
+    const { dni } = req.params;
+    if (!/^\d{8}$/.test(dni)) {
+      return res.status(400).json({ success: false, message: 'DNI debe ser 8 dígitos' });
+    }
+    
+    const fs = require('fs');
+    const path = require('path');
+    const cacheDir = process.env.NODE_ENV === 'production' ? '/app/cache' : path.join(__dirname, 'cache');
+    const cacheFile = path.join(cacheDir, `dni_${dni}.json`);
+    
+    if (fs.existsSync(cacheFile)) {
+      fs.unlinkSync(cacheFile);
+      console.log(`🗑️ Caché eliminado para DNI: ${dni}`);
+      res.json({
+        success: true,
+        message: `Caché del DNI ${dni} eliminado exitosamente. La próxima consulta obtendrá datos actualizados.`,
+        dni: dni
+      });
+    } else {
+      res.json({
+        success: false,
+        message: `No existe caché para el DNI ${dni}`,
+        dni: dni
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error eliminando caché:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
+  }
+});
+
 // Endpoint META - Entrega TODO absolutamente todo
 app.get('/meta', async (req, res) => {
   try {
