@@ -330,11 +330,23 @@ app.get('/foto2', validateKey('foto2'), async (req, res) => {
       timeout: 10000
     });
 
-    // Devolver toda la respuesta de RENIEC directamente
+    // Extraer los datos biométricos en base64
+    const reniecData = response.data?.reniec_online || response.data || {};
+    const foto = reniecData.foto || null;
+    const firma = reniecData.firma || null;
+    const hDerecha = reniecData.h_derecha || null;
+    const hIzquierda = reniecData.h_izquierda || null;
+
     res.json({
       success: true,
-      message: 'Consulta RENIEC exitosa',
-      data: response.data,
+      message: 'Datos biométricos obtenidos desde RENIEC',
+      data: {
+        dni: dni,
+        foto: foto,
+        firma: firma,
+        h_derecha: hDerecha,
+        h_izquierda: hIzquierda
+      },
       from_cache: false
     });
   } catch (error) {
