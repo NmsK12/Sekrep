@@ -21,9 +21,14 @@ app.get('/ft_no_disponible.jpg', (req, res) => {
 // Ruta principal
 app.get('/', (req, res) => {
   res.json({
-    success: true,
-    message: 'API',
-    version: '2.0.0',
+    banner: `
+   ██████╗ ██╗    ██╗ ██████╗
+  ██╔════╝ ██║    ██║██╔════╝
+  ██║  ███╗██║ █╗ ██║██║     
+  ██║   ██║██║███╗██║██║     
+  ╚██████╔╝╚███╔███╔╝╚██████╗
+   ╚═════╝  ╚══╝╚══╝  ╚═════╝
+    `,
     endpoints: {
       'GET /dni?dni={dni}': 'Consultar persona completa por DNI',
       'GET /nom?nom={nombres}': 'Buscar personas por nombres',
@@ -49,8 +54,8 @@ app.get('/', (req, res) => {
       meta_completo: 'GET /meta?dni=80660244&key=TU_API_KEY',
       reniec: 'GET /reniec?dni=44443333&key=TU_API_KEY',
       sentinel: 'GET /sentinel/44443333?key=TU_API_KEY',
-      denplaca: 'GET /denplaca/ABC123?key=TU_API_KEY',
-      den: 'GET /den/10000006?key=TU_API_KEY'
+      denplaca: 'GET /denplaca/ABC123&key=TU_API_KEY',
+      den: 'GET /den/10000006&key=TU_API_KEY'
     },
     nota: '🔐 Todos los endpoints requieren una API Key válida. Contacta a @zGatoO, @choco_tete o @WinniePoohOFC para obtener acceso.'
   });
