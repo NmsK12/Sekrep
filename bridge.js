@@ -624,13 +624,55 @@ class Bridge {
       console.log('📥 Respuesta de búsqueda recibida');
       const html = searchResponse.data;
       
+      // Debug: mostrar respuesta para depuración
+      console.log('📄 Respuesta HTML (primeros 2000 chars):', html.substring(0, 2000));
+      console.log('📏 Longitud total de respuesta:', html.length);
+      
+      // Verificar si hay mensaje de "no resultados"
+      if (html.includes('No se encontró ningun resultado') || html.includes('No se encontraron resultados')) {
+        console.log('⚠️ Mensaje de "sin resultados" detectado en HTML');
+        return {
+          success: false,
+          message: 'No se encontraron resultados para esos nombres',
+          data: {
+            nombres: nombres,
+            resultados: [],
+            total: 0
+          }
+        };
+      }
+      
+      // Verificar si hay redirección (sesión expirada)
+      if (html.includes('window.location.href') && html.includes('view=login')) {
+        console.log('⚠️ Sesión expirada detectada, haciendo re-login...');
+        this.cookie = null;
+        await this.login();
+        console.log('🔄 Reintentando búsqueda después del re-login...');
+        return await this.buscarNombres(nombres);
+      }
+      
       // 5. Extraer resultados
       const $ = cheerio.load(html);
       const resultados = [];
       
+      // Contar cuántas tablas y filas hay
+      const numTablas = $('table.tablabox').length;
+      const numFilas = $('table.tablabox tbody tr').length;
+      console.log(`📊 Tablas encontradas: ${numTablas}, Filas encontradas: ${numFilas}`);
+      
       $('table.tablabox tbody tr').each((i, row) => {
         const $row = $(row);
         const cells = $row.find('td');
+        
+        console.log(`🔍 Fila ${i}: ${cells.length} celdas encontradas`);
+        
+        if (cells.length > 0) {
+          // Debug: mostrar contenido de cada celda
+          cells.each((j, cell) => {
+            const texto = $(cell).text().trim().substring(0, 50);
+            console.log(`  Celda ${j}: "${texto}"`);
+          });
+        }
         
         if (cells.length >= 6) {
           const foto = $(cells[0]).find('img').attr('src') || '';
@@ -639,6 +681,8 @@ class Bridge {
           const apellidoMaterno = $(cells[3]).text().trim();
           const apellidoPaterno = $(cells[4]).text().trim();
           const fechaNacimiento = $(cells[5]).text().trim();
+          
+          console.log(`✅ Procesando resultado: DNI=${dni}, Nombre=${nombresCompletos}`);
           
           if (dni && nombresCompletos) {
             resultados.push({
@@ -650,6 +694,8 @@ class Bridge {
               foto: foto
             });
           }
+        } else {
+          console.log(`⚠️ Fila ${i} tiene solo ${cells.length} celdas (se esperaban 6+)`);
         }
       });
       
