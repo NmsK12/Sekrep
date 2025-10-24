@@ -28,11 +28,11 @@ app.get('/', (req, res) => {
       'GET /dni?dni={dni}': 'Consultar persona completa por DNI',
       'GET /nom?nom={nombres}': 'Buscar personas por nombres',
       'GET /telp?tel={telefono}': 'Buscar por teléfono',
-      'GET /telp?tel={dni}': 'Obtener teléfonos por DNI',
       'GET /arg?dni={dni}': 'Obtener árbol genealógico por DNI',
       'GET /risk?dni={dni}': 'Obtener datos de riesgo por DNI',
       'GET /foto?dni={dni}': 'Obtener foto por DNI',
       'GET /sunat?dni={dni}': 'Obtener trabajos SUNAT por DNI',
+      'GET /meta?dni={dni}': 'Obtener todos los datos disponibles',
       'GET /reniec?dni={dni}': 'Consultar RENIEC (API externa)',
       'GET /sentinel/:documento': 'Consultar Sentinel por documento',
       'GET /denplaca/:placa': 'Consultar denuncias por placa vehicular',
@@ -42,7 +42,6 @@ app.get('/', (req, res) => {
       dni_completo: 'GET /dni?dni=80660244&key=TU_API_KEY',
       nombres: 'GET /nom?nom=MIGUEL-MOSCOSO&key=TU_API_KEY',
       telefono: 'GET /telp?tel=904684131&key=TU_API_KEY',
-      telefonos_dni: 'GET /telp?tel=80660244&key=TU_API_KEY',
       arbol_dni: 'GET /arg?dni=80660244&key=TU_API_KEY',
       riesgo_dni: 'GET /risk?dni=80660244&key=TU_API_KEY',
       foto_dni: 'GET /foto?dni=80660244&key=TU_API_KEY',
@@ -50,8 +49,8 @@ app.get('/', (req, res) => {
       meta_completo: 'GET /meta?dni=80660244&key=TU_API_KEY',
       reniec: 'GET /reniec?dni=44443333&key=TU_API_KEY',
       sentinel: 'GET /sentinel/44443333?key=TU_API_KEY',
-      denuncias_placa: 'GET /denplaca/ABC123?key=TU_API_KEY',
-      denuncias_dni: 'GET /den/10000006?key=TU_API_KEY'
+      denplaca: 'GET /denplaca/ABC123?key=TU_API_KEY',
+      den: 'GET /den/10000006?key=TU_API_KEY'
     },
     nota: '🔐 Todos los endpoints requieren una API Key válida. Contacta a @zGatoO, @choco_tete o @WinniePoohOFC para obtener acceso.'
   });
