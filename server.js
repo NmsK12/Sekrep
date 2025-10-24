@@ -30,10 +30,13 @@ app.get('/', (req, res) => {
       'GET /telp?tel={telefono}': 'Buscar por teléfono',
       'GET /telp?tel={dni}': 'Obtener teléfonos por DNI',
       'GET /arg?dni={dni}': 'Obtener árbol genealógico por DNI',
-      'GET /corr?dni={dni}': 'Obtener correos por DNI',
       'GET /risk?dni={dni}': 'Obtener datos de riesgo por DNI',
       'GET /foto?dni={dni}': 'Obtener foto por DNI',
-      'GET /sunat?dni={dni}': 'Obtener trabajos SUNAT por DNI'
+      'GET /sunat?dni={dni}': 'Obtener trabajos SUNAT por DNI',
+      'GET /reniec?dni={dni}': 'Consultar RENIEC (API externa)',
+      'GET /sentinel/:documento': 'Consultar Sentinel por documento',
+      'GET /denuncias-placa/:placa': 'Consultar denuncias por placa vehicular',
+      'GET /denuncias-dni/:dni': 'Consultar denuncias por DNI'
     },
     examples: {
       dni_completo: 'GET /dni?dni=80660244&key=TU_API_KEY',
@@ -41,11 +44,14 @@ app.get('/', (req, res) => {
       telefono: 'GET /telp?tel=904684131&key=TU_API_KEY',
       telefonos_dni: 'GET /telp?tel=80660244&key=TU_API_KEY',
       arbol_dni: 'GET /arg?dni=80660244&key=TU_API_KEY',
-      correos_dni: 'GET /corr?dni=80660244&key=TU_API_KEY',
       riesgo_dni: 'GET /risk?dni=80660244&key=TU_API_KEY',
       foto_dni: 'GET /foto?dni=80660244&key=TU_API_KEY',
       sunat_dni: 'GET /sunat?dni=80660244&key=TU_API_KEY',
-      meta_completo: 'GET /meta?dni=80660244&key=TU_API_KEY'
+      meta_completo: 'GET /meta?dni=80660244&key=TU_API_KEY',
+      reniec: 'GET /reniec?dni=44443333&key=TU_API_KEY',
+      sentinel: 'GET /sentinel/44443333?key=TU_API_KEY',
+      denuncias_placa: 'GET /denuncias-placa/ABC123?key=TU_API_KEY',
+      denuncias_dni: 'GET /denuncias-dni/10000006&key=TU_API_KEY'
     },
     nota: '🔐 Todos los endpoints requieren una API Key válida. Contacta a @zGatoO, @choco_tete o @WinniePoohOFC para obtener acceso.'
   });
@@ -535,6 +541,130 @@ app.get('/meta', validateKey('meta'), async (req, res) => {
   }
 });
 
+
+// ===== ENDPOINTS PROXY CON VALIDACIÓN DE KEY =====
+// Estos endpoints actúan como proxy para APIs externas, validando la key antes de hacer la petición
+
+// 1. RENIEC API - Consulta por DNI
+app.get('/reniec', validateKey('reniec'), async (req, res) => {
+  try {
+    const { dni } = req.query;
+    
+    if (!dni) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parámetro DNI es requerido'
+      });
+    }
+
+    // Hacer petición a la API externa
+    const axios = require('axios');
+    const response = await axios.get(`http://161.132.4.52:6322/reniec?dni=${dni}`, {
+      timeout: 10000
+    });
+
+    res.json({
+      success: true,
+      message: 'Consulta RENIEC exitosa',
+      data: response.data,
+      from_cache: false
+    });
+  } catch (error) {
+    console.error('❌ Error en RENIEC proxy:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error consultando RENIEC',
+      error: error.message
+    });
+  }
+});
+
+// 2. SENTINEL API - Consulta por documento
+app.get('/sentinel/:documento', validateKey('sentinel'), async (req, res) => {
+  try {
+    const { documento } = req.params;
+    const TOKEN_SENTINEL = '719a4d6d-048d-445f-8ff5-6ab3e85a4d30';
+
+    // Hacer petición a la API externa
+    const axios = require('axios');
+    const response = await axios.get(
+      `http://161.132.45.149:3001/api/sentinel/${documento}?token=${TOKEN_SENTINEL}`,
+      { timeout: 10000 }
+    );
+
+    res.json({
+      success: true,
+      message: 'Consulta Sentinel exitosa',
+      data: response.data,
+      from_cache: false
+    });
+  } catch (error) {
+    console.error('❌ Error en Sentinel proxy:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error consultando Sentinel',
+      error: error.message
+    });
+  }
+});
+
+// 3. DENUNCIAS PLACA API - Consulta por placa vehicular
+app.get('/denuncias-placa/:placa', validateKey('denuncias-placa'), async (req, res) => {
+  try {
+    const { placa } = req.params;
+    const TOKEN_DENUNCIAS = '8e9c272d-9a62-4d81-b3e4-2872ec777990';
+
+    // Hacer petición a la API externa
+    const axios = require('axios');
+    const response = await axios.get(
+      `http://161.132.45.149:3001/api/denuncias-placa-json/${placa}?token=${TOKEN_DENUNCIAS}`,
+      { timeout: 10000 }
+    );
+
+    res.json({
+      success: true,
+      message: 'Consulta de denuncias por placa exitosa',
+      data: response.data,
+      from_cache: false
+    });
+  } catch (error) {
+    console.error('❌ Error en Denuncias Placa proxy:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error consultando denuncias por placa',
+      error: error.message
+    });
+  }
+});
+
+// 4. DENUNCIAS DNI API - Consulta denuncias por DNI
+app.get('/denuncias-dni/:dni', validateKey('denuncias-dni'), async (req, res) => {
+  try {
+    const { dni } = req.params;
+    const TOKEN_DENUNCIAS_DNI = 'f0c156bb-b90b-48d7-8aa4-66265c4c45d0';
+
+    // Hacer petición a la API externa
+    const axios = require('axios');
+    const response = await axios.get(
+      `http://161.132.45.149:3001/api/denuncias-json/${dni}?token=${TOKEN_DENUNCIAS_DNI}`,
+      { timeout: 10000 }
+    );
+
+    res.json({
+      success: true,
+      message: 'Consulta de denuncias por DNI exitosa',
+      data: response.data,
+      from_cache: false
+    });
+  } catch (error) {
+    console.error('❌ Error en Denuncias DNI proxy:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error consultando denuncias por DNI',
+      error: error.message
+    });
+  }
+});
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
