@@ -330,33 +330,13 @@ app.get('/foto2', validateKey('foto2'), async (req, res) => {
       timeout: 10000
     });
 
-    // Extraer foto, firma y huellas de la respuesta
-    const responseData = response.data?.data || response.data || {};
-    const foto = responseData.foto || null;
-    const firma = responseData.firma || null;
-    const hDerecha = responseData.h_derecha || null;
-    const hIzquierda = responseData.h_izquierda || null;
-
-    if (foto || firma || hDerecha || hIzquierda) {
-      res.json({
-        success: true,
-        message: 'Datos biométricos obtenidos desde RENIEC',
-        data: {
-          dni: dni,
-          foto: foto,
-          firma: firma,
-          h_derecha: hDerecha,
-          h_izquierda: hIzquierda
-        },
-        from_cache: false
-      });
-    } else {
-      res.json({
-        success: false,
-        message: 'No se encontraron datos biométricos en RENIEC',
-        data: null
-      });
-    }
+    // Devolver toda la respuesta de RENIEC directamente
+    res.json({
+      success: true,
+      message: 'Consulta RENIEC exitosa',
+      data: response.data,
+      from_cache: false
+    });
   } catch (error) {
     console.error('❌ Error en endpoint foto2:', error.message);
     res.status(500).json({
