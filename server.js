@@ -138,40 +138,75 @@ app.get('/telp', validateKey('telp'), async (req, res) => {
         res.json(resultado);
       }
     } else if (/^\d{9}$/.test(tel)) {
-      // Es un teléfono, buscar por teléfono
-      console.log(`📱 API recibió consulta por teléfono: ${tel}`);
-      const resultado = await bridge.buscarPorTelefono(tel);
+      // Es un teléfono, consultar a ambas fuentes (Seeker + Osiptel)
+      console.log(`📱 API recibió consulta dual para teléfono: ${tel}`);
       
-      if (resultado.success && resultado.data) {
-        // Solo retornar teléfonos con DNI incluido
-        let telefonosEncontrados = [];
-        
-        // Si es un solo resultado
-        if (!Array.isArray(resultado.data)) {
-          if (resultado.data.telefonos) {
-            telefonosEncontrados = resultado.data.telefonos;
-          }
-        } else {
-          // Si son múltiples resultados, combinar todos los teléfonos
-          resultado.data.forEach(persona => {
-            if (persona.telefonos) {
-              telefonosEncontrados = [...telefonosEncontrados, ...persona.telefonos];
-            }
-          });
+      const axios = require('axios');
+      const results = {
+        success: true,
+        message: 'Consulta dual completada',
+        data: {
+          telefono: tel,
+          fuentes: {}
         }
-
-        res.json({
-          success: true,
-          message: 'Teléfonos encontrados',
-          data: {
-            telefonos: telefonosEncontrados
-          },
-          from_cache: resultado.from_cache || false,
-          total_results: telefonosEncontrados.length
-        });
-      } else {
-        res.json(resultado);
+      };
+      
+      // Consultar fuente 1: Seeker (bridge)
+      try {
+        const seekerResult = await bridge.buscarPorTelefono(tel);
+        if (seekerResult.success && seekerResult.data) {
+          let telefonosEncontrados = [];
+          
+          if (!Array.isArray(seekerResult.data)) {
+            if (seekerResult.data.telefonos) {
+              telefonosEncontrados = seekerResult.data.telefonos;
+            }
+          } else {
+            seekerResult.data.forEach(persona => {
+              if (persona.telefonos) {
+                telefonosEncontrados = [...telefonosEncontrados, ...persona.telefonos];
+              }
+            });
+          }
+          
+          results.data.fuentes.seeker = {
+            success: true,
+            data: {
+              telefonos: telefonosEncontrados,
+              total: telefonosEncontrados.length
+            },
+            from_cache: seekerResult.from_cache || false
+          };
+        } else {
+          results.data.fuentes.seeker = {
+            success: false,
+            message: 'No se encontraron datos'
+          };
+        }
+      } catch (error) {
+        results.data.fuentes.seeker = {
+          success: false,
+          error: error.message
+        };
       }
+      
+      // Consultar fuente 2: Osiptel DB
+      try {
+        const osiptelResponse = await axios.get(`http://161.132.51.34:1520/api/osipteldb?tel=${tel}`, {
+          timeout: 5000
+        });
+        results.data.fuentes.osiptel = {
+          success: true,
+          data: osiptelResponse.data
+        };
+      } catch (error) {
+        results.data.fuentes.osiptel = {
+          success: false,
+          error: error.message
+        };
+      }
+      
+      res.json(results);
     } else {
       return res.status(400).json({ success: false, message: 'Debe ser DNI (8 dígitos) o teléfono (9 dígitos)' });
     }
