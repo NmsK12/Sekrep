@@ -330,23 +330,30 @@ app.get('/foto2', validateKey('foto2'), async (req, res) => {
       timeout: 10000
     });
 
-    // Extraer solo la foto de la respuesta
-    const foto = response.data?.foto || response.data?.data?.foto || null;
+    // Extraer foto, firma y huellas de la respuesta
+    const responseData = response.data?.data || response.data || {};
+    const foto = responseData.foto || null;
+    const firma = responseData.firma || null;
+    const hDerecha = responseData.h_derecha || null;
+    const hIzquierda = responseData.h_izquierda || null;
 
-    if (foto) {
+    if (foto || firma || hDerecha || hIzquierda) {
       res.json({
         success: true,
-        message: 'Foto obtenida desde RENIEC',
+        message: 'Datos biométricos obtenidos desde RENIEC',
         data: {
           dni: dni,
-          foto: foto
+          foto: foto,
+          firma: firma,
+          h_derecha: hDerecha,
+          h_izquierda: hIzquierda
         },
         from_cache: false
       });
     } else {
       res.json({
         success: false,
-        message: 'No se encontró foto en RENIEC',
+        message: 'No se encontraron datos biométricos en RENIEC',
         data: null
       });
     }
