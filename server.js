@@ -35,7 +35,8 @@ app.get('/', (req, res) => {
       'GET /telp?tel={telefono}': 'Buscar por teléfono',
       'GET /arg?dni={dni}': 'Obtener árbol genealógico por DNI',
       'GET /risk?dni={dni}': 'Obtener datos de riesgo por DNI',
-      'GET /foto?dni={dni}': 'Obtener foto por DNI',
+      'GET /foto?dni={dni}': 'Obtener foto por DNI (Seeker)',
+      'GET /foto2?dni={dni}': 'Obtener foto por DNI (RENIEC)',
       'GET /sunat?dni={dni}': 'Obtener trabajos SUNAT por DNI',
       'GET /meta?dni={dni}': 'Obtener todos los datos disponibles',
       'GET /reniec?dni={dni}': 'Consultar RENIEC (API externa)',
@@ -50,6 +51,7 @@ app.get('/', (req, res) => {
       arbol_dni: 'GET /arg?dni=80660244&key=TU_API_KEY',
       riesgo_dni: 'GET /risk?dni=80660244&key=TU_API_KEY',
       foto_dni: 'GET /foto?dni=80660244&key=TU_API_KEY',
+      foto2_dni: 'GET /foto2?dni=80660244&key=TU_API_KEY',
       sunat_dni: 'GET /sunat?dni=80660244&key=TU_API_KEY',
       meta_completo: 'GET /meta?dni=80660244&key=TU_API_KEY',
       reniec: 'GET /reniec?dni=44443333&key=TU_API_KEY',
@@ -326,6 +328,63 @@ app.get('/foto', validateKey('foto'), async (req, res) => {
   } catch (error) {
     console.error('❌ Error en endpoint foto:', error.message);
     res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
+  }
+});
+
+// Endpoint para obtener solo foto desde RENIEC
+app.get('/foto2', validateKey('foto2'), async (req, res) => {
+  try {
+    const { dni } = req.query;
+    
+    if (!dni) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parámetro DNI es requerido'
+      });
+    }
+
+    if (!/^\d{8}$/.test(dni)) {
+      return res.status(400).json({
+        success: false,
+        message: 'DNI debe ser 8 dígitos'
+      });
+    }
+
+    console.log(`📸 API recibió consulta foto2 (RENIEC) para DNI: ${dni}`);
+
+    // Consultar API de RENIEC
+    const axios = require('axios');
+    const response = await axios.get(`http://161.132.4.52:6322/reniec?dni=${dni}`, {
+      timeout: 10000
+    });
+
+    // Extraer solo la foto de la respuesta
+    const foto = response.data?.foto || response.data?.data?.foto || null;
+
+    if (foto) {
+      res.json({
+        success: true,
+        message: 'Foto obtenida desde RENIEC',
+        data: {
+          dni: dni,
+          foto: foto
+        },
+        from_cache: false
+      });
+    } else {
+      res.json({
+        success: false,
+        message: 'No se encontró foto en RENIEC',
+        data: null
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error en endpoint foto2:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error consultando foto en RENIEC',
+      error: error.message
+    });
   }
 });
 
