@@ -35,8 +35,8 @@ app.get('/', (req, res) => {
       'GET /sunat?dni={dni}': 'Obtener trabajos SUNAT por DNI',
       'GET /reniec?dni={dni}': 'Consultar RENIEC (API externa)',
       'GET /sentinel/:documento': 'Consultar Sentinel por documento',
-      'GET /denuncias-placa/:placa': 'Consultar denuncias por placa vehicular',
-      'GET /denuncias-dni/:dni': 'Consultar denuncias por DNI'
+      'GET /denplaca/:placa': 'Consultar denuncias por placa vehicular',
+      'GET /den/:dni': 'Consultar denuncias por DNI'
     },
     examples: {
       dni_completo: 'GET /dni?dni=80660244&key=TU_API_KEY',
@@ -50,8 +50,8 @@ app.get('/', (req, res) => {
       meta_completo: 'GET /meta?dni=80660244&key=TU_API_KEY',
       reniec: 'GET /reniec?dni=44443333&key=TU_API_KEY',
       sentinel: 'GET /sentinel/44443333?key=TU_API_KEY',
-      denuncias_placa: 'GET /denuncias-placa/ABC123?key=TU_API_KEY',
-      denuncias_dni: 'GET /denuncias-dni/10000006&key=TU_API_KEY'
+      denuncias_placa: 'GET /denplaca/ABC123?key=TU_API_KEY',
+      denuncias_dni: 'GET /den/10000006?key=TU_API_KEY'
     },
     nota: '🔐 Todos los endpoints requieren una API Key válida. Contacta a @zGatoO, @choco_tete o @WinniePoohOFC para obtener acceso.'
   });
@@ -609,7 +609,7 @@ app.get('/sentinel/:documento', validateKey('sentinel'), async (req, res) => {
 });
 
 // 3. DENUNCIAS PLACA API - Consulta por placa vehicular
-app.get('/denuncias-placa/:placa', validateKey('denuncias-placa'), async (req, res) => {
+app.get('/denplaca/:placa', validateKey('denplaca'), async (req, res) => {
   try {
     const { placa } = req.params;
     const TOKEN_DENUNCIAS = '8e9c272d-9a62-4d81-b3e4-2872ec777990';
@@ -638,7 +638,7 @@ app.get('/denuncias-placa/:placa', validateKey('denuncias-placa'), async (req, r
 });
 
 // 4. DENUNCIAS DNI API - Consulta denuncias por DNI
-app.get('/denuncias-dni/:dni', validateKey('denuncias-dni'), async (req, res) => {
+app.get('/den/:dni', validateKey('den'), async (req, res) => {
   try {
     const { dni } = req.params;
     const TOKEN_DENUNCIAS_DNI = 'f0c156bb-b90b-48d7-8aa4-66265c4c45d0';
