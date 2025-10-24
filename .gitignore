@@ -80,3 +80,6 @@ temp/
 # Build files
 dist/
 build/
+
+# RENIEC Database Harvester (PRIVADO - NO SUBIR)
+RDB/
