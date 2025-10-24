@@ -216,40 +216,6 @@ app.get('/arg', validateKey('arg'), async (req, res) => {
   }
 });
 
-// Endpoint para obtener correos - Formato corto
-app.get('/corr', validateKey('corr'), async (req, res) => {
-  try {
-    const { dni } = req.query;
-    if (!dni) {
-      return res.status(400).json({ success: false, message: 'DNI es requerido' });
-    }
-    if (!/^\d{8}$/.test(dni)) {
-      return res.status(400).json({ success: false, message: 'DNI debe ser 8 dígitos' });
-    }
-    console.log(`📧 API recibió consulta correos para DNI: ${dni}`);
-    const resultado = await bridge.buscarDNI(dni);
-    
-    if (resultado.success && resultado.data) {
-      res.json({
-        success: true,
-        message: 'Correos obtenidos exitosamente',
-        data: {
-          dni: resultado.data.dni,
-          nombres: resultado.data.nombres,
-          apellidos: resultado.data.apellidos,
-          correos: resultado.data.correos || []
-        },
-        from_cache: resultado.from_cache || false
-      });
-    } else {
-      res.json(resultado);
-    }
-  } catch (error) {
-    console.error('❌ Error en endpoint corr:', error.message);
-    res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
-  }
-});
-
 // Endpoint para obtener datos de riesgo - Formato corto
 app.get('/risk', validateKey('risk'), async (req, res) => {
   try {
