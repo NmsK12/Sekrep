@@ -13,7 +13,7 @@ const NameService = require('./services/nameService');
 const BASE_URL = process.env.BASE_URL || 'https://seeker.lat';
 const SEEKER_USER = process.env.SEEKER_USER || 'NmsK12';
 const SEEKER_PASS = process.env.SEEKER_PASS || '6PEWxyISpy';
-const REQUEST_TIMEOUT_MS = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '60000', 10); // 60 segundos
+const REQUEST_TIMEOUT_MS = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '120000', 10); // 120 segundos (2 minutos)
 
 class Bridge {
   constructor() {
@@ -100,9 +100,14 @@ class Bridge {
   async login() {
     try {
       console.log('🔐 Iniciando sesión...');
+      console.log(`⏱️ Timeout configurado: ${REQUEST_TIMEOUT_MS}ms`);
+      console.log(`🌐 URL base: ${this.baseUrl}`);
       
       // 1. Obtener página de login
-      const loginPage = await this.session.get(`${this.baseUrl}/index.php?view=login`);
+      console.log('📄 Obteniendo página de login...');
+      const loginPage = await this.session.get(`${this.baseUrl}/index.php?view=login`, {
+        timeout: REQUEST_TIMEOUT_MS
+      });
       const $ = cheerio.load(loginPage.data);
       
       // 2. Encontrar el formulario
@@ -120,6 +125,7 @@ class Bridge {
       
       // 4. Hacer login
       const loginResponse = await this.session.post(actionUrl, formData, {
+        timeout: REQUEST_TIMEOUT_MS,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Referer': `${this.baseUrl}/index.php?view=login`,
@@ -141,7 +147,9 @@ class Bridge {
       }
       
       // 6. Verificar login
+      console.log('✅ Verificando login...');
       const homeResponse = await this.session.get(`${this.baseUrl}/index.php?view=home`, {
+        timeout: REQUEST_TIMEOUT_MS,
         headers: {
           'Cookie': this.cookie,
           'Referer': `${this.baseUrl}/index.php?view=login`
@@ -161,6 +169,17 @@ class Bridge {
       
     } catch (error) {
       console.error('❌ Error en login:', error.message);
+      
+      // Mensajes de error más descriptivos
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        console.error('⏱️ Timeout: Seeker.lat está tardando demasiado en responder');
+        console.error(`💡 Sugerencia: El servidor puede estar sobrecargado. Intenta de nuevo en unos minutos.`);
+      } else if (error.code === 'ENOTFOUND') {
+        console.error('🌐 No se puede resolver el dominio seeker.lat');
+      } else if (error.code === 'ECONNREFUSED') {
+        console.error('🚫 Conexión rechazada por seeker.lat');
+      }
+      
       return false;
     }
   }
@@ -193,6 +212,7 @@ class Bridge {
       
       // 2. Ir a la página de home
       const homeResponse = await this.session.get(`${this.baseUrl}/index.php?view=home`, {
+        timeout: REQUEST_TIMEOUT_MS,
         headers: {
           'Cookie': this.cookie,
           'Referer': `${this.baseUrl}/index.php?view=home`
@@ -211,6 +231,7 @@ class Bridge {
       
       // 4. Hacer búsqueda AJAX
       const searchResponse = await this.session.post(`${this.baseUrl}/index.php?action=validate`, searchData, {
+        timeout: REQUEST_TIMEOUT_MS,
         headers: {
           'Cookie': this.cookie,
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -264,6 +285,7 @@ class Bridge {
           
           // Ir a la página de resultados
           const resultResponse = await this.session.get(redirectUrl, {
+            timeout: REQUEST_TIMEOUT_MS,
             headers: {
               'Cookie': this.cookie,
               'Referer': `${this.baseUrl}/index.php?view=home`
@@ -591,6 +613,7 @@ class Bridge {
       
       // 2. Ir a la página de home
       const homeResponse = await this.session.get('https://seeker.lat/index.php?view=home', {
+        timeout: REQUEST_TIMEOUT_MS,
         headers: {
           'Cookie': this.cookie,
           'Referer': 'https://seeker.lat/index.php?view=home'
@@ -612,6 +635,7 @@ class Bridge {
       
       // 4. Hacer búsqueda AJAX
       const searchResponse = await this.session.post('https://seeker.lat/index.php?action=validate', searchData, {
+        timeout: REQUEST_TIMEOUT_MS,
         headers: {
           'Cookie': this.cookie,
           'Content-Type': 'application/x-www-form-urlencoded',
