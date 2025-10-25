@@ -7,9 +7,10 @@ const axios = require('axios');
 const https = require('https');
 
 class SusaludService {
-  constructor(manualToken = null) {
+  constructor(manualToken = null, manualRefreshToken = null) {
     // Configuración
-    this.loginUrl = 'https://app8.susalud.gob.pe:8380/api/auth/login'; // Ajustar según lo que captures
+    this.loginUrl = 'https://app30.susalud.gob.pe:8083/api/siteds-seguridad/auth/login/autenticar';
+    this.refreshUrl = 'https://app30.susalud.gob.pe:8083/api/siteds-seguridad/auth/login/refreshtoken';
     this.apiBaseUrl = 'https://app30.susalud.gob.pe:8087/api/siteds-raaus';
     
     // Credenciales
@@ -17,9 +18,9 @@ class SusaludService {
     this.password = 'k574774g';
     
     // Sesión
-    this.cookies = null;
-    this.token = manualToken; // Permitir token manual
-    this.sessionExpiry = manualToken ? Date.now() + (30 * 60 * 1000) : null;
+    this.accessToken = manualToken; // Token de acceso
+    this.refreshToken = manualRefreshToken; // Token para renovar
+    this.tokenExpiry = manualToken ? Date.now() + (10 * 60 * 1000) : null; // 10 minutos
     
     // Cliente HTTP con configuración para ignorar certificados SSL si es necesario
     this.client = axios.create({
@@ -136,16 +137,61 @@ class SusaludService {
    * Verificar si la sesión es válida
    */
   isSessionValid() {
-    if (!this.cookies && !this.token) {
+    if (!this.accessToken) {
       return false;
     }
     
-    if (this.sessionExpiry && Date.now() > this.sessionExpiry) {
-      console.log('⏰ [SUSalud] Sesión expirada');
+    if (this.tokenExpiry && Date.now() > this.tokenExpiry) {
+      console.log('⏰ [SUSalud] Token expirado');
       return false;
     }
     
     return true;
+  }
+
+  /**
+   * Renovar el token de acceso usando el refreshToken
+   */
+  async refreshAccessToken() {
+    try {
+      console.log('🔄 [SUSalud] Renovando token de acceso...');
+      
+      if (!this.refreshToken) {
+        console.error('❌ [SUSalud] No hay refreshToken disponible');
+        return false;
+      }
+      
+      // Hacer petición para refrescar el token
+      const response = await this.client.post(this.refreshUrl, {
+        refreshToken: this.refreshToken
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'cache-control': 'no-cache, no-store, must-revalidate',
+          'pragma': 'no-cache',
+          'expires': '0'
+        }
+      });
+      
+      console.log('📊 [SUSalud] Respuesta de refresh:', response.status);
+      
+      if (response.status === 200 && response.data && response.data.data) {
+        const tokenData = response.data.data;
+        
+        this.accessToken = tokenData.accessToken;
+        this.refreshToken = tokenData.refreshToken; // Nuevo refreshToken
+        this.tokenExpiry = Date.now() + (10 * 60 * 1000); // 10 minutos
+        
+        console.log('✅ [SUSalud] Token renovado exitosamente');
+        return true;
+      }
+      
+      return false;
+      
+    } catch (error) {
+      console.error('❌ [SUSalud] Error renovando token:', error.message);
+      return false;
+    }
   }
 
   /**
@@ -157,12 +203,22 @@ class SusaludService {
     try {
       // Verificar sesión
       if (!this.isSessionValid()) {
-        console.log('🔄 [SUSalud] Sesión no válida, haciendo login...');
-        const loginOk = await this.login();
-        if (!loginOk) {
+        console.log('🔄 [SUSalud] Token no válido o expirado');
+        
+        // Intentar renovar con refreshToken
+        if (this.refreshToken) {
+          console.log('🔄 [SUSalud] Intentando renovar con refreshToken...');
+          const refreshOk = await this.refreshAccessToken();
+          if (!refreshOk) {
+            return {
+              success: false,
+              message: 'No se pudo renovar el token. Por favor proporciona un nuevo token de acceso.'
+            };
+          }
+        } else {
           return {
             success: false,
-            message: 'No se pudo iniciar sesión en SUSalud'
+            message: 'No hay token de acceso. Por favor proporciona un accessToken y refreshToken válidos.'
           };
         }
       }
@@ -175,21 +231,15 @@ class SusaludService {
       // Preparar headers con autenticación
       const headers = {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessToken}`
       };
-      
-      if (this.cookies) {
-        headers['Cookie'] = this.cookies;
-      }
-      
-      if (this.token) {
-        headers['Authorization'] = this.token.startsWith('Bearer ') ? this.token : `Bearer ${this.token}`;
-      }
       
       // Hacer petición
       const response = await this.client.get(url, { headers });
       
       console.log('✅ [SUSalud] Consulta exitosa');
+      console.log('📊 [SUSalud] Respuesta:', JSON.stringify(response.data).substring(0, 1000));
       
       // Verificar respuesta
       if (response.data && response.data.success === false) {
@@ -209,19 +259,24 @@ class SusaludService {
     } catch (error) {
       console.error('❌ [SUSalud] Error en consulta:', error.message);
       
-      // Si es error de autenticación, reintentar con nuevo login
+      // Si es error de autenticación, intentar renovar token
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        console.log('🔄 [SUSalud] Error de autenticación, reintentando login...');
-        this.cookies = null;
-        this.token = null;
-        this.sessionExpiry = null;
+        console.log('🔄 [SUSalud] Error de autenticación detectado');
         
-        // Reintentar una vez
-        const loginOk = await this.login();
-        if (loginOk) {
-          console.log('🔄 [SUSalud] Reintentando consulta...');
-          return await this.consultarSeguros(dni, tipoDoc);
+        if (this.refreshToken) {
+          console.log('🔄 [SUSalud] Intentando renovar token...');
+          const refreshOk = await this.refreshAccessToken();
+          if (refreshOk) {
+            console.log('🔄 [SUSalud] Reintentando consulta con nuevo token...');
+            return await this.consultarSeguros(dni, tipoDoc);
+          }
         }
+        
+        return {
+          success: false,
+          message: 'Token expirado. Por favor proporciona un nuevo accessToken y refreshToken.',
+          error: 'TOKEN_EXPIRED'
+        };
       }
       
       return {
@@ -236,12 +291,15 @@ class SusaludService {
   /**
    * Formatear datos de seguros para respuesta
    */
-  formatearRespuesta(data) {
-    if (!data || !data.data) {
+  formatearRespuesta(resultado) {
+    if (!resultado || !resultado.data) {
       return null;
     }
     
-    const info = data.data;
+    // La respuesta viene en resultado.data (que es la respuesta completa de la API)
+    // Y los datos están en resultado.data.data
+    const apiResponse = resultado.data;
+    const info = apiResponse.data || apiResponse;
     
     return {
       dni: info.v_NroDoc,

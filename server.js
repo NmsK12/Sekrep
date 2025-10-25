@@ -9,7 +9,18 @@ const SusaludService = require('./services/susaludService');
 
 const app = express();
 const bridge = new Bridge();
-const susaludService = new SusaludService();
+
+// Inicializar servicio de SUSalud con tokens de entorno si existen
+const SUSALUD_ACCESS_TOKEN = process.env.SUSALUD_ACCESS_TOKEN || null;
+const SUSALUD_REFRESH_TOKEN = process.env.SUSALUD_REFRESH_TOKEN || null;
+const susaludService = new SusaludService(SUSALUD_ACCESS_TOKEN, SUSALUD_REFRESH_TOKEN);
+
+// Mostrar estado de SUSalud al iniciar
+if (SUSALUD_ACCESS_TOKEN) {
+  console.log('🏥 Servicio SUSalud inicializado con tokens configurados');
+} else {
+  console.log('⚠️  Servicio SUSalud sin tokens - Necesita configuración manual');
+}
 
 // Middleware
 app.use(cors());
