@@ -7,9 +7,9 @@ const axios = require('axios');
 const https = require('https');
 
 class SusaludService {
-  constructor() {
+  constructor(manualToken = null) {
     // Configuración
-    this.loginUrl = 'https://app8.susalud.gob.pe:8380/login';
+    this.loginUrl = 'https://app8.susalud.gob.pe:8380/api/auth/login'; // Ajustar según lo que captures
     this.apiBaseUrl = 'https://app30.susalud.gob.pe:8087/api/siteds-raaus';
     
     // Credenciales
@@ -18,8 +18,8 @@ class SusaludService {
     
     // Sesión
     this.cookies = null;
-    this.token = null;
-    this.sessionExpiry = null;
+    this.token = manualToken; // Permitir token manual
+    this.sessionExpiry = manualToken ? Date.now() + (30 * 60 * 1000) : null;
     
     // Cliente HTTP con configuración para ignorar certificados SSL si es necesario
     this.client = axios.create({
@@ -43,21 +43,51 @@ class SusaludService {
   async login() {
     try {
       console.log('🔐 [SUSalud] Iniciando sesión...');
+      console.log(`🔐 [SUSalud] URL: ${this.loginUrl}`);
+      console.log(`🔐 [SUSalud] Usuario: ${this.username}`);
       
-      // Preparar datos de login
+      // Preparar datos de login - probar diferentes formatos
       const loginData = {
         username: this.username,
         password: this.password
       };
       
+      console.log('📤 [SUSalud] Enviando credenciales...');
+      
+      // Probar primero con form-urlencoded (más común en sistemas web)
+      const FormData = require('form-data');
+      const querystring = require('querystring');
+      
+      const formData = querystring.stringify({
+        username: this.username,
+        password: this.password,
+        // Posibles campos adicionales que algunos sistemas requieren
+        login: 'Login',
+        submit: 'Ingresar'
+      });
+      
       // Intentar login
-      const response = await this.client.post(this.loginUrl, loginData, {
+      const response = await this.client.post(this.loginUrl, formData, {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        },
+        maxRedirects: 5,
+        validateStatus: function (status) {
+          return status >= 200 && status < 500; // Aceptar redirects y errores para debug
         }
       });
       
       console.log('📊 [SUSalud] Respuesta de login:', response.status);
+      console.log('📊 [SUSalud] Headers de respuesta:', JSON.stringify(response.headers, null, 2).substring(0, 500));
+      console.log('📊 [SUSalud] Body de respuesta:', JSON.stringify(response.data).substring(0, 500));
+      
+      // Si el login falló
+      if (response.status !== 200 && response.status !== 201) {
+        console.error('❌ [SUSalud] Login falló con status:', response.status);
+        console.error('📄 [SUSalud] Respuesta:', response.data);
+        return false;
+      }
       
       // Extraer cookies de la respuesta
       const setCookieHeaders = response.headers['set-cookie'];
@@ -76,6 +106,12 @@ class SusaludService {
       if (response.headers['authorization']) {
         this.token = response.headers['authorization'];
         console.log('🔑 [SUSalud] Token en header Authorization');
+      }
+      
+      // Verificar que obtuvimos algo
+      if (!this.cookies && !this.token) {
+        console.error('⚠️ [SUSalud] No se obtuvieron cookies ni token');
+        return false;
       }
       
       // Marcar sesión como válida por 30 minutos
