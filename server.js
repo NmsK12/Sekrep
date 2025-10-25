@@ -5,9 +5,11 @@ const path = require('path');
 const cors = require('cors');
 const Bridge = require('./bridge');
 const { validateKey } = require('./middleware/keyValidator');
+const SusaludService = require('./services/susaludService');
 
 const app = express();
 const bridge = new Bridge();
+const susaludService = new SusaludService();
 
 // Middleware
 app.use(cors());
@@ -700,6 +702,41 @@ app.get('/den/:dni', validateKey('den'), async (req, res) => {
   }
 });
 
+// 5. SUSALUD API - Consulta seguros de salud por DNI
+app.get('/salud/:dni', validateKey('salud'), async (req, res) => {
+  try {
+    const { dni } = req.params;
+    const { tipoDoc } = req.query;
+    
+    console.log(`🏥 [SUSalud] API recibió consulta para DNI: ${dni}`);
+    
+    // Consultar seguros
+    const resultado = await susaludService.consultarSeguros(dni, tipoDoc || '1');
+    
+    if (resultado.success && resultado.data) {
+      // Formatear respuesta
+      const dataFormateada = susaludService.formatearRespuesta(resultado);
+      
+      res.json({
+        success: true,
+        message: 'Consulta de seguros de salud exitosa',
+        data: dataFormateada || resultado.data,
+        raw_data: resultado.data, // Incluir datos originales también
+        from_cache: false
+      });
+    } else {
+      res.json(resultado);
+    }
+  } catch (error) {
+    console.error('❌ Error en SUSalud proxy:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error consultando seguros de salud',
+      error: error.message
+    });
+  }
+});
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
@@ -716,6 +753,7 @@ app.listen(PORT, () => {
   console.log('   GET  /risk?dni={dni} - Obtener datos de riesgo');
   console.log('   GET  /foto?dni={dni} - Obtener foto');
   console.log('   GET  /sunat?dni={dni} - Obtener trabajos SUNAT');
+  console.log('   GET  /salud/{dni} - Consultar seguros de salud (SUSalud)');
   console.log('   GET  /stats - Estadísticas del caché');
   console.log('   GET  /meta?dni={dni} - Obtener TODOS los datos (META)');
   console.log('   GET  /                           - Información completa de la API');
@@ -724,8 +762,10 @@ app.listen(PORT, () => {
   console.log(`   curl "http://localhost:${PORT}/telp?tel=904684131&key=TU_API_KEY"`);
   console.log(`   curl "http://localhost:${PORT}/arg?dni=80660244&key=TU_API_KEY"`);
   console.log(`   curl "http://localhost:${PORT}/meta?dni=80660244&key=TU_API_KEY"`);
+  console.log(`   curl "http://localhost:${PORT}/salud/44443333?key=TU_API_KEY"`);
   console.log('💾 Sistema de caché permanente - Los datos se guardan para siempre');
   console.log('🔐 API protegida con sistema de keys - Se requiere key válida para acceder');
+  console.log('🏥 Nueva integración con SUSalud para consultar seguros de salud');
   console.log('📱 Panel de administración para gestionar keys en puerto 3001');
 });
 
