@@ -13,7 +13,8 @@ const NameService = require('./services/nameService');
 const BASE_URL = process.env.BASE_URL || 'https://seeker.lat';
 const SEEKER_USER = process.env.SEEKER_USER || 'NmsK12';
 const SEEKER_PASS = process.env.SEEKER_PASS || '6PEWxyISpy';
-const REQUEST_TIMEOUT_MS = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '120000', 10); // 120 segundos (2 minutos)
+// Timeout mínimo de 120 segundos - seeker.lat puede ser muy lento
+const REQUEST_TIMEOUT_MS = Math.max(Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '120000', 10), 120000);
 
 class Bridge {
   constructor() {
