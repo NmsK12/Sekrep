@@ -24,7 +24,7 @@ class SusaludService {
     
     // Cliente HTTP con configuración para ignorar certificados SSL si es necesario
     this.client = axios.create({
-      timeout: 30000,
+      timeout: 120000, // 120 segundos (2 minutos) - SUSalud puede ser lento
       httpsAgent: new https.Agent({
         rejectUnauthorized: false // Para servidores con SSL autofirmado
       }),
