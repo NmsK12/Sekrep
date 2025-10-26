@@ -1,5 +1,8 @@
 // API simple y limpia - v1.0.1 (fix email@protected)
 
+// Cargar variables de entorno desde archivo .env
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const cors = require('cors');

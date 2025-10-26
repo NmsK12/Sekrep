@@ -1,0 +1,8 @@
+# Copia este contenido a un archivo llamado .env en la raíz del proyecto
+
+SUSALUD_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiJ9.TU_ACCESS_TOKEN_COMPLETO_AQUI
+SUSALUD_REFRESH_TOKEN=eyJhbGciOiJIUzI1NiJ9.TU_REFRESH_TOKEN_COMPLETO_AQUI
+
+# Los tokens son MUY LARGOS (400+ caracteres)
+# Cópialos completos desde DevTools después de hacer login
+
