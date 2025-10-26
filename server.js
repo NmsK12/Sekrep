@@ -17,9 +17,19 @@ const susaludService = new SusaludService(SUSALUD_ACCESS_TOKEN, SUSALUD_REFRESH_
 
 // Mostrar estado de SUSalud al iniciar
 if (SUSALUD_ACCESS_TOKEN) {
-  console.log('🏥 Servicio SUSalud inicializado con tokens configurados');
+  console.log('✅ Servicio SUSalud inicializado con tokens configurados');
+  console.log(`   Access Token: ${SUSALUD_ACCESS_TOKEN.substring(0, 30)}...`);
 } else {
-  console.log('⚠️  Servicio SUSalud sin tokens - Necesita configuración manual');
+  console.log('⚠️  ========================================');
+  console.log('⚠️  SERVICIO SUSALUD NO CONFIGURADO');
+  console.log('⚠️  ========================================');
+  console.log('⚠️  Para usar el endpoint /salud/:dni necesitas:');
+  console.log('⚠️  1. Capturar tokens desde el navegador');
+  console.log('⚠️  2. Configurar variables de entorno:');
+  console.log('⚠️     SUSALUD_ACCESS_TOKEN=tu_token');
+  console.log('⚠️     SUSALUD_REFRESH_TOKEN=tu_refresh_token');
+  console.log('⚠️  3. Ver guía: SUSALUD_GUIA_COMPLETA.md');
+  console.log('⚠️  ========================================');
 }
 
 // Middleware
@@ -720,6 +730,22 @@ app.get('/salud/:dni', validateKey('salud'), async (req, res) => {
     const { tipoDoc } = req.query;
     
     console.log(`🏥 [SUSalud] API recibió consulta para DNI: ${dni}`);
+    
+    // Verificar si el servicio está configurado
+    if (!SUSALUD_ACCESS_TOKEN) {
+      return res.status(503).json({
+        success: false,
+        message: '⚠️ Servicio SUSalud no configurado',
+        error: 'NO_TOKENS_CONFIGURED',
+        instrucciones: {
+          paso1: 'Captura los tokens desde el navegador',
+          paso2: 'Haz login en https://app8.susalud.gob.pe:8380/login',
+          paso3: 'En DevTools > Network captura accessToken y refreshToken',
+          paso4: 'Configura variables de entorno SUSALUD_ACCESS_TOKEN y SUSALUD_REFRESH_TOKEN',
+          guia: 'Ver SUSALUD_GUIA_COMPLETA.md para instrucciones detalladas'
+        }
+      });
+    }
     
     // Consultar seguros
     const resultado = await susaludService.consultarSeguros(dni, tipoDoc || '1');
