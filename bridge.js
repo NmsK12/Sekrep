@@ -27,6 +27,7 @@ class Bridge {
     this.baseUrl = BASE_URL;
     this._cachedDefaultPhotoDataUrl = null;
     this.cacheService = new CacheService();
+    this.timeout = REQUEST_TIMEOUT_MS; // Guardar timeout para usarlo explícitamente
   }
 
   getDefaultPhotoDataUrl() {
@@ -688,15 +689,15 @@ class Bridge {
         const $row = $(row);
         const cells = $row.find('td');
         
-        console.log(`🔍 Fila ${i}: ${cells.length} celdas encontradas`);
+        // Debug deshabilitado para evitar spam de logs en Railway
+        // console.log(`🔍 Fila ${i}: ${cells.length} celdas encontradas`);
         
-        if (cells.length > 0) {
-          // Debug: mostrar contenido de cada celda
-          cells.each((j, cell) => {
-            const texto = $(cell).text().trim().substring(0, 50);
-            console.log(`  Celda ${j}: "${texto}"`);
-          });
-        }
+        // if (cells.length > 0) {
+        //   cells.each((j, cell) => {
+        //     const texto = $(cell).text().trim().substring(0, 50);
+        //     console.log(`  Celda ${j}: "${texto}"`);
+        //   });
+        // }
         
         if (cells.length >= 6) {
           const foto = $(cells[0]).find('img').attr('src') || '';
@@ -706,7 +707,8 @@ class Bridge {
           const apellidoPaterno = $(cells[4]).text().trim();
           const fechaNacimiento = $(cells[5]).text().trim();
           
-          console.log(`✅ Procesando resultado: DNI=${dni}, Nombre=${nombresCompletos}`);
+          // Log reducido para evitar spam en Railway
+          // console.log(`✅ Procesando resultado: DNI=${dni}, Nombre=${nombresCompletos}`);
           
           if (dni && nombresCompletos) {
             resultados.push({
