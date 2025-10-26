@@ -15,6 +15,8 @@ const SEEKER_USER = process.env.SEEKER_USER || 'NmsK12';
 const SEEKER_PASS = process.env.SEEKER_PASS || '6PEWxyISpy';
 // Timeout mínimo de 120 segundos - seeker.lat puede ser muy lento
 const REQUEST_TIMEOUT_MS = Math.max(Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '120000', 10), 120000);
+// Límite máximo de resultados para búsquedas de nombres (evita timeouts con búsquedas genéricas)
+const MAX_NAME_RESULTS = Number.parseInt(process.env.MAX_NAME_RESULTS || '200', 10);
 
 class Bridge {
   constructor() {
@@ -686,19 +688,18 @@ class Bridge {
       const numFilas = $('table.tablabox tbody tr').length;
       console.log(`📊 Tablas encontradas: ${numTablas}, Filas encontradas: ${numFilas}`);
       
+      let totalEncontrados = 0;
+      let limitAlcanzado = false;
+      
       $('table.tablabox tbody tr').each((i, row) => {
+        // Detener si ya alcanzamos el límite
+        if (resultados.length >= MAX_NAME_RESULTS) {
+          limitAlcanzado = true;
+          return false; // Detener el bucle
+        }
+        
         const $row = $(row);
         const cells = $row.find('td');
-        
-        // Debug deshabilitado para evitar spam de logs en Railway
-        // console.log(`🔍 Fila ${i}: ${cells.length} celdas encontradas`);
-        
-        // if (cells.length > 0) {
-        //   cells.each((j, cell) => {
-        //     const texto = $(cell).text().trim().substring(0, 50);
-        //     console.log(`  Celda ${j}: "${texto}"`);
-        //   });
-        // }
         
         if (cells.length >= 6) {
           const foto = $(cells[0]).find('img').attr('src') || '';
@@ -708,35 +709,45 @@ class Bridge {
           const apellidoPaterno = $(cells[4]).text().trim();
           const fechaNacimiento = $(cells[5]).text().trim();
           
-          // Log reducido para evitar spam en Railway
-          // console.log(`✅ Procesando resultado: DNI=${dni}, Nombre=${nombresCompletos}`);
-          
           if (dni && nombresCompletos) {
-            resultados.push({
-              dni: dni,
-              nombres: nombresCompletos,
-              apellidoMaterno: apellidoMaterno,
-              apellidoPaterno: apellidoPaterno,
-              fechaNacimiento: fechaNacimiento,
-              foto: foto
-            });
+            totalEncontrados++;
+            
+            // Solo agregar si no hemos alcanzado el límite
+            if (resultados.length < MAX_NAME_RESULTS) {
+              resultados.push({
+                dni: dni,
+                nombres: nombresCompletos,
+                apellidoMaterno: apellidoMaterno,
+                apellidoPaterno: apellidoPaterno,
+                fechaNacimiento: fechaNacimiento,
+                foto: foto
+              });
+            }
           }
-        } else {
-          console.log(`⚠️ Fila ${i} tiene solo ${cells.length} celdas (se esperaban 6+)`);
         }
       });
       
-      console.log(`📋 ${resultados.length} resultados encontrados`);
+      console.log(`📋 ${resultados.length} resultados procesados${limitAlcanzado ? ` (límite de ${MAX_NAME_RESULTS} alcanzado)` : ''}`);
       
-      return {
+      // Preparar respuesta
+      const response = {
         success: true,
-        message: 'Búsqueda exitosa',
+        message: limitAlcanzado ? `Búsqueda exitosa (mostrando primeros ${MAX_NAME_RESULTS} resultados)` : 'Búsqueda exitosa',
         data: {
           nombres: nombres,
           resultados: resultados,
-          total: resultados.length
+          total: resultados.length,
+          hasMore: limitAlcanzado,
+          limit: MAX_NAME_RESULTS
         }
       };
+      
+      // Agregar warning si hay más resultados
+      if (limitAlcanzado) {
+        response.warning = `Se encontraron muchos resultados. Mostrando los primeros ${MAX_NAME_RESULTS}. Para mejores resultados, agrega el apellido materno a tu búsqueda.`;
+      }
+      
+      return response;
       
     } catch (error) {
       console.error('❌ Error buscando nombres:', error.message);
