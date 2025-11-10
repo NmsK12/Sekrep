@@ -643,7 +643,7 @@ app.get('/reniec', validateKey('reniec'), async (req, res) => {
 app.get('/sentinel/:documento', validateKey('sentinel'), async (req, res) => {
   try {
     const { documento } = req.params;
-    const TOKEN_SENTINEL = '719a4d6d-048d-445f-8ff5-6ab3e85a4d30';
+    const TOKEN_SENTINEL = '2706a56c-084d-4974-bd93-5381ce46f342';
 
     // Hacer petición a la API externa
     const axios = require('axios');
